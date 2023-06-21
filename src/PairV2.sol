@@ -70,15 +70,13 @@ contract PairV2 is ERC20, ReentrancyGuard {
             revert errOverflow();
         }
         unchecked {
-            //uint32 blockTimestamp = uint32(block.timestamp % type(uint32).max);
-            uint32 blockTimestamp = uint32(block.timestamp);
-            uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
+            uint256 timeElapsed = block.timestamp - uint256(blockTimestampLast); // overflow is desired
             if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
                 // * never overflows, and + overflow is desired
-                price0CumulativeLast += uint256(UQ112x112.encode(_reserve1).uqdiv(_reserve0)) * uint256(timeElapsed);
-                price1CumulativeLast += uint256(UQ112x112.encode(_reserve0).uqdiv(_reserve1)) * uint256(timeElapsed);
+                price0CumulativeLast += uint256(UQ112x112.encode(_reserve1).uqdiv(_reserve0)) * timeElapsed;
+                price1CumulativeLast += uint256(UQ112x112.encode(_reserve0).uqdiv(_reserve1)) * timeElapsed;
             }
-            blockTimestampLast = blockTimestamp;
+            blockTimestampLast = uint32(block.timestamp);
         }
         reserve0 = uint112(balance0);
         reserve1 = uint112(balance1);
@@ -191,7 +189,8 @@ contract PairV2 is ERC20, ReentrancyGuard {
         if (amount0Out == 0 && amount1Out == 0) {
             revert errInsufficientOutputAmount();
         }
-        (uint112 _reserve0, uint112 _reserve1) = (reserve0, reserve1);
+        uint112 _reserve0 = reserve0;
+        uint112 _reserve1 = reserve1;
         require(amount0Out < _reserve0 && amount1Out < _reserve1, "INSUFFICIENT_LIQUIDITY");
 
         // scope for _token{0,1}, avoids stack too deep errors
