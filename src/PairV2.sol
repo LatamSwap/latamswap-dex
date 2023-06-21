@@ -20,17 +20,21 @@ contract PairV2 is ERC20, ReentrancyGuard {
     error errInsufficientLiquidityBurned();
     error errInsufficientOutputAmount();
 
+    // reserve slots for balance storage
+    uint256[1<<160] private __gapBalances;
+
     uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
 
     address public immutable factory;
     address public immutable token0;
     address public immutable token1;
 
+    address private immutable feeTo;
+    
     uint112 private reserve0; // uses single storage slot, accessible via getReserves
     uint112 private reserve1; // uses single storage slot, accessible via getReserves
     uint32 private blockTimestampLast; // uses single storage slot, accessible via getReserves
-    address private immutable feeTo;
-
+    
     uint256 public price0CumulativeLast;
     uint256 public price1CumulativeLast;
     uint256 public kLast; // reserve0 * reserve1, as of immediately after the most recent liquidity event
