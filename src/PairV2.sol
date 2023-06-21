@@ -11,7 +11,7 @@ import {IUniswapV2Factory} from "v2-core/interfaces/IUniswapV2Factory.sol";
 
 import {ERC20} from "./ERC20-pair.sol";
 
-contract LatamSwapPairV2 is ERC20, ReentrancyGuard {
+contract PairV2 is ERC20, ReentrancyGuard {
     using UQ112x112 for uint224;
     using SafeTransferLib for address;
 

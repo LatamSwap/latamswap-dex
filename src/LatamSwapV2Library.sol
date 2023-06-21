@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 import {IUniswapV2Pair} from "v2-core/interfaces/IUniswapV2Pair.sol";
 import {Create2} from "openzeppelin/utils/Create2.sol";
 
-import {LatamSwapPairV2} from "./LatamSwapPairV2.sol";
+import {PairV2} from "./PairV2.sol";
 
 library LatamSwapV2Library {
     // returns sorted token addresses, used to handle return values from pairs sorted in this order
@@ -18,7 +18,7 @@ library LatamSwapV2Library {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
 
         bytes memory params = abi.encodePacked(uint256(uint160(token0)), uint256(uint160(token1)));
-        bytes memory bytecode = abi.encodePacked(type(LatamSwapPairV2).creationCode, params);
+        bytes memory bytecode = abi.encodePacked(type(PairV2).creationCode, params);
 
         pair = Create2.computeAddress(keccak256(params), keccak256(bytecode), factory);
     }
