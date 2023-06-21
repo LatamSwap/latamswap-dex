@@ -187,22 +187,20 @@ contract LatamSwapPairV2 is ERC20, ReentrancyGuard {
         if (amount0Out == 0 && amount1Out == 0) {
             revert errInsufficientOutputAmount();
         }
-        uint112 _reserve0 = reserve0;
-        uint112 _reserve1 = reserve1;
+        (uint112 _reserve0, uint112 _reserve1) = (reserve0, reserve1);
         require(amount0Out < _reserve0 && amount1Out < _reserve1, "INSUFFICIENT_LIQUIDITY");
 
-        uint256 balance0;
-        uint256 balance1;
         // scope for _token{0,1}, avoids stack too deep errors
         require(to != token0 && to != token1, "INVALID_TO");
         if (amount0Out > 0) token0.safeTransfer(to, amount0Out); // optimistically transfer tokens
         if (amount1Out > 0) token1.safeTransfer(to, amount1Out); // optimistically transfer tokens
         if (data.length > 0) IUniswapV2Callee(to).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
-        balance0 = token0.balanceOf(address(this));
-        balance1 = token1.balanceOf(address(this));
+        uint256 balance0 = token0.balanceOf(address(this));
+        uint256 balance1 = token1.balanceOf(address(this));
 
         uint256 amount0In;
         uint256 amount1In;
+        /*
         unchecked {
             uint256 _aux = _reserve0 - amount0Out;
             if (balance0 > _aux) {
@@ -212,9 +210,20 @@ contract LatamSwapPairV2 is ERC20, ReentrancyGuard {
             if (balance1 > _aux) {
                 amount1In = balance1 - _aux;
             }
-            require(amount0In > 0 || amount1In > 0, "INSUFFICIENT_INPUT_AMOUNT");
+        }
+        */
+        assembly {
+            let _aux := sub(_reserve0, amount0Out)
+            if gt(balance0, _aux) {
+                amount0In := sub(balance0, _aux)
+            }
+            _aux := sub(_reserve1, amount1Out)
+            if gt(balance1, _aux) {
+                amount1In := sub(balance1, _aux)
+            }
         }
 
+        require(amount0In > 0 || amount1In > 0, "INSUFFICIENT_INPUT_AMOUNT");
         _update(balance0, balance1, _reserve0, _reserve1);
 
         // uint256 balance0Adjusted = balance0 * 1000 - amount0In * 3;
