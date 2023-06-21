@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.19;
 
 import {IUniswapV2Factory} from "v2-core/interfaces/IUniswapV2Factory.sol";
 
@@ -15,7 +15,7 @@ contract UniswapV2Factory is IUniswapV2Factory {
     // @dev event defined in IUniswapV2Factory
     // event PairCreated(address indexed token0, address indexed token1, address pair, uint);
 
-    constructor(address _feeToSetter) public {
+    constructor(address _feeToSetter) {
         feeToSetter = _feeToSetter;
     }
 
