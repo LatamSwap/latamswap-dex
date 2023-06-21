@@ -88,13 +88,18 @@ contract LatamSwapPairV2 is ERC20, ReentrancyGuard {
             uint256 rootK = FixedPointMathLib.sqrt(uint256(_reserve0) * uint256(_reserve1));
             uint256 rootKLast = FixedPointMathLib.sqrt(_kLast);
             if (rootK > rootKLast) {
-                unchecked {
-                    uint256 denominator = rootK * 5 + rootKLast;
-                    uint256 numerator = totalSupply() * (rootK - rootKLast);
-                    // 1/6th of the growth in sqrt(k)
-                    uint256 liquidity = numerator / denominator;
-                    if (liquidity > 0) _mint(feeTo, liquidity);
+                uint256 liquidity;
+                assembly {
+                    // uint256 numerator = totalSupply() * (rootK - rootKLast);
+                    let numerator := mul(sload(_TOTALSUPPLY_SLOT), sub(rootK, rootKLast))
+                    // uint256 denominator = rootK * 5 + rootKLast;
+                    let denominator := add(mul(rootK, 5), rootKLast)
+
+                    // uint256 liquidity = numerator / denominator;
+                    liquidity := div(numerator, denominator)
                 }
+                // 1/6th of the growth in sqrt(k)
+                if (liquidity > 0) _mint(feeTo, liquidity);
             }
         }
     }
@@ -108,14 +113,19 @@ contract LatamSwapPairV2 is ERC20, ReentrancyGuard {
         uint256 amount0 = balance0 - _reserve0;
         uint256 amount1 = balance1 - _reserve1;
         // gas savings, must be defined here since totalSupply can update in _mintFee
-        uint256 cacheTotalSupply = totalSupply();
+        // uint256 cacheTotalSupply = totalSupply();
+        uint256 cacheTotalSupply;
+        assembly {
+            cacheTotalSupply := sload(_TOTALSUPPLY_SLOT)
+        }
 
         if (cacheTotalSupply == 0) {
             liquidity = FixedPointMathLib.sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
             // permanently nonReentrant the first MINIMUM_LIQUIDITY tokens
             _mint(address(0), MINIMUM_LIQUIDITY);
         } else {
-            liquidity = FixedPointMathLib.min(amount0 * cacheTotalSupply / _reserve0, amount1 * cacheTotalSupply / _reserve1);
+            liquidity =
+                FixedPointMathLib.min(amount0 * cacheTotalSupply / _reserve0, amount1 * cacheTotalSupply / _reserve1);
         }
         if (liquidity == 0) {
             revert errInsufficientLiquidityMinted();
@@ -135,10 +145,19 @@ contract LatamSwapPairV2 is ERC20, ReentrancyGuard {
 
         uint256 balance0 = token0.balanceOf(address(this));
         uint256 balance1 = token1.balanceOf(address(this));
-        uint256 liquidity = balanceOf(address(this));
+        // uint256 liquidity = balanceOf(address(this));
+        uint256 liquidity;
+
+        assembly {
+            liquidity := sload(address())
+        }
 
         _mintFee(_reserve0, _reserve1);
-        uint256 cacheTotalSupply = totalSupply(); // gas savings, must be defined here since totalSupply can update in _mintFee
+        // uint256 cacheTotalSupply = totalSupply(); // gas savings, must be defined here since totalSupply can update in _mintFee
+        uint256 cacheTotalSupply;
+        assembly {
+            cacheTotalSupply := sload(_TOTALSUPPLY_SLOT)
+        }
 
         //unchecked {
         //amount0 = liquidity * balance0 / cacheTotalSupply; // cacheTotalSupply; // using balances ensures pro-rata distribution

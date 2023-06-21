@@ -64,7 +64,7 @@ abstract contract ERC20 {
     //////////////////////////////////////////////////////////////*/
 
     constructor() {
-      INITIAL_CHAIN_ID = block.chainid;
+        INITIAL_CHAIN_ID = block.chainid;
         INITIAL_DOMAIN_SEPARATOR = computeDomainSeparator();
     }
 
@@ -83,10 +83,10 @@ abstract contract ERC20 {
     }
 
     function totalSupply() public view returns (uint256 _totalSupply) {
-      /// @solidity memory-safe-assembly
-      assembly {
-        _totalSupply := sload(_TOTALSUPPLY_SLOT)
-      }
+        /// @solidity memory-safe-assembly
+        assembly {
+            _totalSupply := sload(_TOTALSUPPLY_SLOT)
+        }
     }
 
     function balanceOf(address account) public view returns (uint256 _balance) {
@@ -110,7 +110,7 @@ abstract contract ERC20 {
             // balanceOf[msg.sender] -= amount;
             let _balance := sload(caller())
             if lt(_balance, amount) {
-                mstore(0x00, 0xf4d678b8) // error InsufficientBalance(); 
+                mstore(0x00, 0xf4d678b8) // error InsufficientBalance();
                 revert(0x1c, 0x04)
             }
             sstore(caller(), sub(_balance, amount))
@@ -207,7 +207,7 @@ abstract contract ERC20 {
         assembly {
             // totalSupply += amount
             sstore(_TOTALSUPPLY_SLOT, add(sload(_TOTALSUPPLY_SLOT), amount))
-            
+
             // Cannot overflow because the sum of all user
             // balances can't exceed the max uint256 value.
             // unchecked {

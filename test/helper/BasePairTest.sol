@@ -9,7 +9,6 @@ import {IUniswapV2Factory} from "v2-core/interfaces/IUniswapV2Factory.sol";
 import {IUniswapV2Pair} from "v2-core/interfaces/IUniswapV2Pair.sol";
 import {UQ112x112} from "src/utils/UQ112x112.sol";
 
-
 contract MockFactory {
     address public feeTo;
 

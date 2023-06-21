@@ -12,7 +12,7 @@ import "./helper/BasePairTest.sol";
 contract LatamPair2Test is BasePairTest {
     function setUp() public override {
         super.setUp();
-        
+
         factory = address(new MockFactory(address(this)));
         IUniswapV2Factory(factory).setFeeTo(address(this));
 
