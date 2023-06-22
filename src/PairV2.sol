@@ -21,7 +21,7 @@ contract PairV2 is ERC20, ReentrancyGuard {
     error errInsufficientOutputAmount();
 
     // reserve slots for balance storage
-    uint256[1<<160] private __gapBalances;
+    uint256[1 << 160] private __gapBalances;
 
     uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
 
@@ -30,11 +30,11 @@ contract PairV2 is ERC20, ReentrancyGuard {
     address public immutable token1;
 
     address private immutable feeTo;
-    
+
     uint112 private reserve0; // uses single storage slot, accessible via getReserves
     uint112 private reserve1; // uses single storage slot, accessible via getReserves
     uint32 private blockTimestampLast; // uses single storage slot, accessible via getReserves
-    
+
     uint256 public price0CumulativeLast;
     uint256 public price1CumulativeLast;
     uint256 public kLast; // reserve0 * reserve1, as of immediately after the most recent liquidity event
@@ -217,13 +217,9 @@ contract PairV2 is ERC20, ReentrancyGuard {
         */
         assembly {
             let _aux := sub(_reserve0, amount0Out)
-            if gt(balance0, _aux) {
-                amount0In := sub(balance0, _aux)
-            }
+            if gt(balance0, _aux) { amount0In := sub(balance0, _aux) }
             _aux := sub(_reserve1, amount1Out)
-            if gt(balance1, _aux) {
-                amount1In := sub(balance1, _aux)
-            }
+            if gt(balance1, _aux) { amount1In := sub(balance1, _aux) }
         }
 
         if (amount0In == 0 && amount1In == 0) {
