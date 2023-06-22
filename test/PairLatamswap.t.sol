@@ -26,4 +26,10 @@ contract LatamPair2Test is BasePairTest {
             )
         );
     }
+
+    function testMetadata() public {
+        assertEq(pair.name(), "LatamSwap PairV2");
+        assertEq(pair.symbol(), "LATAMSWAP-V2");
+        assertEq(pair.decimals(), 18);
+    }
 }
