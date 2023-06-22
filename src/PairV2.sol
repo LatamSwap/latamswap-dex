@@ -226,7 +226,9 @@ contract PairV2 is ERC20, ReentrancyGuard {
             }
         }
 
-        require(amount0In > 0 || amount1In > 0, "INSUFFICIENT_INPUT_AMOUNT");
+        if (amount0In == 0 && amount1In == 0) {
+            revert("INSUFFICIENT_INPUT_AMOUNT");
+        }
         _update(balance0, balance1, _reserve0, _reserve1);
 
         // uint256 balance0Adjusted = balance0 * 1000 - amount0In * 3;
