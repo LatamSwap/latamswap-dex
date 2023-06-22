@@ -6,7 +6,7 @@ import "forge-std/Test.sol";
 import {IUniswapV2Pair} from "v2-core/interfaces/IUniswapV2Pair.sol";
 import {PairV2} from "src/PairV2.sol";
 import {Create2} from "openzeppelin/utils/Create2.sol";
-import {LatamSwapV2Library} from "src/LatamSwapV2Library.sol";
+import {PairV2Library} from "src/PairV2Library.sol";
 
 contract MockFactory {
     address public feeTo;
@@ -34,12 +34,12 @@ contract LibTest is Test {
     function testSort(address tokenA, address tokenB) public {
         if (tokenA == address(0) || tokenB == address(0)) {
             vm.expectRevert();
-            LatamSwapV2Library.sortTokens(tokenA, tokenB);
+            PairV2Library.sortTokens(tokenA, tokenB);
         } else if (tokenA == tokenB) {
             vm.expectRevert();
-            LatamSwapV2Library.sortTokens(tokenA, tokenB);
+            PairV2Library.sortTokens(tokenA, tokenB);
         } else {
-            (address token0, address token1) = LatamSwapV2Library.sortTokens(tokenA, tokenB);
+            (address token0, address token1) = PairV2Library.sortTokens(tokenA, tokenB);
 
             if (tokenA < tokenB) {
                 assertEq(token0, tokenA);
@@ -57,7 +57,8 @@ contract LibTest is Test {
 
         bytes32 _salt = keccak256(abi.encodePacked(uint256(uint160(token0)), uint256(uint160(token1))));
 
-        address predicted = LatamSwapV2Library.pairFor(factory, token0, token1);
+        // token addresses are sorted
+        address predicted = PairV2Library.pairFor(factory, token0, token1);
         vm.prank(address(factory));
         pair = IUniswapV2Pair(
             address(

@@ -5,7 +5,7 @@ import {Create2} from "openzeppelin/utils/Create2.sol";
 
 import {PairV2} from "./PairV2.sol";
 
-library LatamSwapV2Library {
+library PairV2Library {
     // returns sorted token addresses, used to handle return values from pairs sorted in this order
     function sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
         require(tokenA != tokenB, "UniswapV2Library: IDENTICAL_ADDRESSES");
@@ -14,9 +14,8 @@ library LatamSwapV2Library {
     }
 
     // calculates the CREATE2 address for a pair without making any external calls
-    function pairFor(address factory, address tokenA, address tokenB) internal pure returns (address pair) {
-        (address token0, address token1) = sortTokens(tokenA, tokenB);
-
+    // @dev token must be sorted!
+    function pairFor(address factory, address token0, address token1) internal pure returns (address pair) {
         bytes memory params = abi.encodePacked(uint256(uint160(token0)), uint256(uint160(token1)));
         bytes memory bytecode = abi.encodePacked(type(PairV2).creationCode, params);
 
@@ -29,8 +28,8 @@ library LatamSwapV2Library {
         view
         returns (uint256 reserveA, uint256 reserveB)
     {
-        (address token0,) = sortTokens(tokenA, tokenB);
-        (uint256 reserve0, uint256 reserve1,) = IUniswapV2Pair(pairFor(factory, tokenA, tokenB)).getReserves();
+        (address token0, address token1) = sortTokens(tokenA, tokenB);
+        (uint256 reserve0, uint256 reserve1,) = IUniswapV2Pair(pairFor(factory, token0, token1)).getReserves();
         (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
     }
 
@@ -81,9 +80,12 @@ library LatamSwapV2Library {
         require(path.length > 1, "UniswapV2Library: INVALID_PATH");
         amounts = new uint256[](path.length);
         amounts[0] = amountIn;
-        for (uint256 i; i < path.length - 1; i++) {
+        for (uint256 i; i < path.length - 1;) {
             (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i], path[i + 1]);
             amounts[i + 1] = getAmountOut(amounts[i], reserveIn, reserveOut);
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -96,9 +98,12 @@ library LatamSwapV2Library {
         require(path.length > 1, "UniswapV2Library: INVALID_PATH");
         amounts = new uint256[](path.length);
         amounts[amounts.length - 1] = amountOut;
-        for (uint256 i = path.length - 1; i > 0; i--) {
+        for (uint256 i = path.length - 1; i > 0;) {
             (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i - 1], path[i]);
             amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut);
+            unchecked {
+                --i;
+            }
         }
     }
 }
