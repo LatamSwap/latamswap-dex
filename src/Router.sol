@@ -2,20 +2,20 @@ pragma solidity ^0.8.0;
 
 import 'v2-core/interfaces/IUniswapV2Factory.sol';
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
-
-import 'v2-periphery/interfaces/IUniswapV2Router02.sol';
+import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
+import {IUniswapV2Router02} from './interfaces/IUniswapV2Router02.sol';
 import {PairV2Library} from './PairV2Library.sol';
 //import 'v2-periphery/libraries/SafeMath.sol';
 import {PairV2} from './PairV2.sol';
 
-import 'v2-periphery/interfaces/IERC20.sol';
 import 'v2-periphery/interfaces/IWETH.sol';
 
 contract UniswapV2Router02 is IUniswapV2Router02 {
-    // using SafeMath for uint;
+    using SafeTransferLib for address;
 
-    address public immutable override factory;
-    address public immutable override WETH;
+    address public immutable factory;
+    address public immutable WETH;
+    address public immutable NATIVO;
 
     modifier ensure(uint deadline) {
         if (deadline < block.timestamp) {
@@ -24,9 +24,10 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         _;
     }
 
-    constructor(address _factory, address _WETH) public {
+    constructor(address _factory, address _WETH, address _NATIVO) public {
         factory = _factory;
         WETH = _WETH;
+        NATIVO = _NATIVO;
     }
 
     receive() external payable {
@@ -94,12 +95,12 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
             amountETHMin
         );
         address pair = PairV2Library.pairFor(factory, token, WETH);
-        SafeTransferLib.safeTransferFrom(token, msg.sender, pair, amountToken);
+        token.safeTransferFrom(msg.sender, pair, amountToken);
         IWETH(WETH).deposit{value: amountETH}();
         IWETH(WETH).transfer(pair, amountETH);
         liquidity = PairV2(pair).mint(to);
         // refund dust eth, if any
-        if (msg.value > amountETH) SafeTransferLib.safeTransferETH(msg.sender, msg.value - amountETH);
+        if (msg.value > amountETH) msg.sender.safeTransferETH(msg.value - amountETH);
     }
 
     // **** REMOVE LIQUIDITY ****
@@ -189,7 +190,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
             address(this),
             deadline
         );
-        SafeTransferLib.safeTransfer(token, to, IERC20(token).balanceOf(address(this)));
+        SafeTransferLib.safeTransfer(token, to, token.balanceOf(address(this)));
         IWETH(WETH).withdraw(amountETH);
         SafeTransferLib.safeTransferETH(to, amountETH);
     }
@@ -217,14 +218,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
             (address input, address output) = (path[i], path[i + 1]);
             (address token0,) = PairV2Library.sortTokens(input, output);
             uint amountOut = amounts[i + 1];
-            // (uint amount0Out, uint amount1Out) = input == token0 ? (0, amountOut) : (amountOut, 0);
-            uint amount0Out;
-            uint amount1Out;
-            if (input == token0) {
-              amount1Out = amountOut;
-            } else {
-              amount0Out = amountOut;
-            }
+            (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
             address to = i < path.length - 2 ? PairV2Library.pairFor(factory, output, path[i + 2]) : _to;
             PairV2(PairV2Library.pairFor(factory, input, output)).swap(
                 amount0Out, amount1Out, to, ""
@@ -326,24 +320,44 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         if (msg.value > amounts[0]) SafeTransferLib.safeTransferETH(msg.sender, msg.value - amounts[0]);
     }
 
+   
     // **** SWAP (supporting fee-on-transfer tokens) ****
     // requires the initial amount to have already been sent to the first pair
     function _swapSupportingFeeOnTransferTokens(address[] memory path, address _to) internal virtual {
-        for (uint i; i < path.length - 1; i++) {
-            (address input, address output) = (path[i], path[i + 1]);
+      address input;
+      address output;
+
+        for (uint i; i < path.length - 1; ){
+            unchecked {
+              (input, output) = (path[i], path[i + 1]);
+            }
             (address token0,) = PairV2Library.sortTokens(input, output);
             PairV2 pair = PairV2(PairV2Library.pairFor(factory, input, output));
-            uint amountInput;
-            uint amountOutput;
-            { // scope to avoid stack too deep errors
+            
+            
+            
+            {
+              uint amount0Out; uint amount1Out;
             (uint reserve0, uint reserve1,) = pair.getReserves();
             (uint reserveInput, uint reserveOutput) = input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
-            amountInput = IERC20(input).balanceOf(address(pair)).sub(reserveInput);
-            amountOutput = PairV2Library.getAmountOut(amountInput, reserveInput, reserveOutput);
+            uint256 amountInput = input.balanceOf(address(pair)) - (reserveInput);
+            uint256 amountOutput = PairV2Library.getAmountOut(amountInput, reserveInput, reserveOutput);
+            ( amount0Out,  amount1Out) = input == token0 ? (uint256(0), amountOutput) : (amountOutput, uint256(0));  
+              unchecked {
+                if (i < path.length - 2) {
+                  pair.swap(amount0Out, amount1Out, PairV2Library.pairFor(factory, output, path[i + 2]), "");
+                } else {
+                  pair.swap(amount0Out, amount1Out, _to, ""); 
+                }
+              }
             }
-            (uint amount0Out, uint amount1Out) = input == token0 ? (0, amountOutput) : (amountOutput, 0);
-            address to = i < path.length - 2 ? PairV2Library.pairFor(factory, output, path[i + 2]) : _to;
-            pair.swap(amount0Out, amount1Out, to, "");
+            // (uint256 amountInput, uint256  amountOutput) = _calcAmountsOut(pair);
+            
+            
+            
+            unchecked {
+              i++;
+            }
         }
     }
     function swapExactTokensForTokensSupportingFeeOnTransferTokens(
@@ -356,10 +370,10 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         SafeTransferLib.safeTransferFrom(
             path[0], msg.sender, PairV2Library.pairFor(factory, path[0], path[1]), amountIn
         );
-        uint balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
+        uint balanceBefore = path[path.length - 1].balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
-            IERC20(path[path.length - 1]).balanceOf(to).sub(balanceBefore) >= amountOutMin,
+            path[path.length - 1].balanceOf(to)- balanceBefore >= amountOutMin,
             'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT'
         );
     }
@@ -379,10 +393,10 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         uint amountIn = msg.value;
         IWETH(WETH).deposit{value: amountIn}();
         IWETH(WETH).transfer(PairV2Library.pairFor(factory, path[0], path[1]), amountIn);
-        uint balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
+        uint balanceBefore = path[path.length - 1].balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
-            IERC20(path[path.length - 1]).balanceOf(to).sub(balanceBefore) >= amountOutMin,
+            path[path.length - 1].balanceOf(to) - balanceBefore >= amountOutMin,
             'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT'
         );
     }
@@ -403,10 +417,10 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
             path[0], msg.sender, PairV2Library.pairFor(factory, path[0], path[1]), amountIn
         );
         _swapSupportingFeeOnTransferTokens(path, address(this));
-        uint amountOut = IERC20(WETH).balanceOf(address(this));
+        uint amountOut = WETH.balanceOf(address(this));
         require(amountOut >= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');
         IWETH(WETH).withdraw(amountOut);
-        SafeTransferLib.safeTransferETH(to, amountOut);
+        to.safeTransferETH(amountOut);
     }
 
     // **** LIBRARY FUNCTIONS ****

@@ -16,9 +16,8 @@ library PairV2Library {
     // calculates the CREATE2 address for a pair without making any external calls
     // @dev token must be sorted!
     function pairFor(address factory, address token0, address token1) internal pure returns (address pair) {
-        // bytes memory params = abi.encode(token0,token1);
-        bytes memory params = abi.encode(uint256(uint160(token0)), uint256(uint160(token1)));
-        bytes memory bytecode = abi.encodePacked(type(PairV2).creationCode, params);
+        bytes memory params = abi.encode(uint256(uint160(token0)),uint256(uint160(token1)));
+        bytes memory bytecode = abi.encodePacked(type(PairV2).creationCode, uint256(uint160(token0)), uint256(uint160(token1)));
 
         pair = Create2.computeAddress(keccak256(params), keccak256(bytecode), factory);
     }
@@ -30,14 +29,14 @@ library PairV2Library {
         returns (uint256 reserveA, uint256 reserveB)
     {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
-        (uint256 reserve0, uint256 reserve1,) = IUniswapV2Pair(pairFor(factory, token0, token1)).getReserves();
-        (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
+        (uint112 _reserve0, uint112 _reserve1,) = IUniswapV2Pair(pairFor(factory, token0, token1)).getReserves();
+        (reserveA, reserveB) = tokenA == token0 ? (uint256(_reserve0), uint256(_reserve1)) : (uint256(_reserve1), uint256(_reserve0));
     }
 
     // given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
     function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) internal pure returns (uint256 amountB) {
-        require(amountA > 0, "UniswapV2Library: INSUFFICIENT_AMOUNT");
-        require(reserveA > 0 && reserveB > 0, "UniswapV2Library: INSUFFICIENT_LIQUIDITY");
+        require(amountA > 0, "INSUFFICIENT_AMOUNT");
+        require(reserveA > 0 && reserveB > 0, "INSUFFICIENT_LIQUIDITY");
         amountB = amountA * reserveB / reserveA;
     }
 
@@ -47,8 +46,8 @@ library PairV2Library {
         pure
         returns (uint256 amountOut)
     {
-        require(amountIn > 0, "UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT");
-        require(reserveIn > 0 && reserveOut > 0, "UniswapV2Library: INSUFFICIENT_LIQUIDITY");
+        require(amountIn > 0, "INSUFFICIENT_INPUT_AMOUNT");
+        require(reserveIn > 0 && reserveOut > 0, "INSUFFICIENT_LIQUIDITY");
         uint256 amountInWithFee = amountIn * (997);
         uint256 numerator = amountInWithFee * (reserveOut);
         uint256 denominator = reserveIn * (1000) + (amountInWithFee);
@@ -63,8 +62,8 @@ library PairV2Library {
         pure
         returns (uint256 amountIn)
     {
-        require(amountOut > 0, "UniswapV2Library: INSUFFICIENT_OUTPUT_AMOUNT");
-        require(reserveIn > 0 && reserveOut > 0, "UniswapV2Library: INSUFFICIENT_LIQUIDITY");
+        require(amountOut > 0, "INSUFFICIENT_OUTPUT_AMOUNT");
+        require(reserveIn > 0 && reserveOut > 0, "INSUFFICIENT_LIQUIDITY");
         uint256 numerator = reserveIn * (amountOut) * (1000);
         uint256 denominator = (reserveOut - amountOut) * (997);
         unchecked {
@@ -73,12 +72,12 @@ library PairV2Library {
     }
 
     // performs chained getAmountOut calculations on any number of pairs
-    function getAmountsOut(address factory, uint256 amountIn, address[] calldata path)
+    function getAmountsOut(address factory, uint256 amountIn, address[] memory path)
         internal
         view
         returns (uint256[] memory amounts)
     {
-        require(path.length > 1, "UniswapV2Library: INVALID_PATH");
+        require(path.length > 1, "INVALID_PATH");
         amounts = new uint256[](path.length);
         amounts[0] = amountIn;
         unchecked {   
@@ -90,7 +89,7 @@ library PairV2Library {
     }
 
     // performs chained getAmountIn calculations on any number of pairs
-    function getAmountsIn(address factory, uint256 amountOut, address[] calldata path)
+    function getAmountsIn(address factory, uint256 amountOut, address[] memory path)
         internal
         view
         returns (uint256[] memory amounts)

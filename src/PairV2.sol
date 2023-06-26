@@ -55,7 +55,7 @@ contract PairV2 is ERC20, ReentrancyGuard {
         factory = msg.sender;
         token0 = _token0;
         token1 = _token1;
-        feeTo = IUniswapV2Factory(factory).feeTo();
+        feeTo = IUniswapV2Factory(msg.sender).feeTo();
     }
 
     function getReserves() external view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast) {

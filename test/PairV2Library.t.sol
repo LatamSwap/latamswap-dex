@@ -7,18 +7,7 @@ import {IUniswapV2Pair} from "v2-core/interfaces/IUniswapV2Pair.sol";
 import {PairV2} from "src/PairV2.sol";
 import {Create2} from "openzeppelin/utils/Create2.sol";
 import {PairV2Library} from "src/PairV2Library.sol";
-
-contract MockFactory {
-    address public feeTo;
-
-    constructor(address _feeTo) {
-        feeTo = _feeTo;
-    }
-
-    function setFeeAddress(address _feeTo) public {
-        feeTo = _feeTo;
-    }
-}
+import "src/Factory.sol";
 
 contract LibTest is Test {
     address factory;
@@ -28,7 +17,7 @@ contract LibTest is Test {
         vm.roll(1);
         vm.warp(1);
 
-        factory = address(new MockFactory(address(this)));
+        factory = address(new UniswapV2Factory(address(this)));
     }
 
     function testSort(address tokenA, address tokenB) public {
@@ -51,23 +40,16 @@ contract LibTest is Test {
         }
     }
 
-    function testReal() public {
-        address token0 = address(0x1);
-        address token1 = address(0x2);
-
-        bytes32 _salt = keccak256(abi.encodePacked(uint256(uint160(token0)), uint256(uint160(token1))));
-
+    function testReal(address tokenA, address tokenB) public {
+        vm.assume(tokenA != address(0) && tokenA != tokenB && tokenB != address(0));
+        (address token0, address token1) = PairV2Library.sortTokens(tokenA, tokenB);
+        
         // token addresses are sorted
         address predicted = PairV2Library.pairFor(factory, token0, token1);
-        vm.prank(address(factory));
-        pair = IUniswapV2Pair(
-            address(
-                new PairV2{salt: _salt}(
-                    address(token0),
-                    address(token1)
-                )
-            )
-        );
+
+        pair = IUniswapV2Pair(UniswapV2Factory(factory).createPair(token0, token1));
+        assertEq(pair.token0(), token0, "wrong token0");
+        assertEq(pair.token1(), token1, "wrong token1");
 
         assertEq(predicted, address(pair));
     }
