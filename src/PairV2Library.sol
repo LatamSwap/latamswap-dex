@@ -8,15 +8,16 @@ import {PairV2} from "./PairV2.sol";
 library PairV2Library {
     // returns sorted token addresses, used to handle return values from pairs sorted in this order
     function sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
-        require(tokenA != tokenB, "UniswapV2Library: IDENTICAL_ADDRESSES");
+        require(tokenA != tokenB, "Library: IDENTICAL_ADDRESSES");
         (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-        require(token0 != address(0), "UniswapV2Library: ZERO_ADDRESS");
+        require(token0 != address(0), "Library: ZERO_ADDRESS");
     }
 
     // calculates the CREATE2 address for a pair without making any external calls
     // @dev token must be sorted!
     function pairFor(address factory, address token0, address token1) internal pure returns (address pair) {
-        bytes memory params = abi.encodePacked(uint256(uint160(token0)), uint256(uint160(token1)));
+        // bytes memory params = abi.encode(token0,token1);
+        bytes memory params = abi.encode(uint256(uint160(token0)), uint256(uint160(token1)));
         bytes memory bytecode = abi.encodePacked(type(PairV2).creationCode, params);
 
         pair = Create2.computeAddress(keccak256(params), keccak256(bytecode), factory);
@@ -80,11 +81,10 @@ library PairV2Library {
         require(path.length > 1, "UniswapV2Library: INVALID_PATH");
         amounts = new uint256[](path.length);
         amounts[0] = amountIn;
-        for (uint256 i; i < path.length - 1;) {
-            (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i], path[i + 1]);
-            amounts[i + 1] = getAmountOut(amounts[i], reserveIn, reserveOut);
-            unchecked {
-                ++i;
+        unchecked {   
+            for (uint256 i; i < path.length - 1; ++i) {
+                (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i], path[i + 1]);
+                amounts[i + 1] = getAmountOut(amounts[i], reserveIn, reserveOut);
             }
         }
     }
@@ -95,14 +95,13 @@ library PairV2Library {
         view
         returns (uint256[] memory amounts)
     {
-        require(path.length > 1, "UniswapV2Library: INVALID_PATH");
+        require(path.length > 1, "Library: INVALID_PATH");
         amounts = new uint256[](path.length);
-        amounts[amounts.length - 1] = amountOut;
-        for (uint256 i = path.length - 1; i > 0;) {
-            (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i - 1], path[i]);
-            amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut);
-            unchecked {
-                --i;
+        unchecked {
+            amounts[amounts.length - 1] = amountOut;
+            for (uint256 i = path.length - 1; i > 0; --i) {
+                (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i - 1], path[i]);
+                amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut);
             }
         }
     }
