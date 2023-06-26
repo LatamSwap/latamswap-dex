@@ -180,7 +180,10 @@ contract PairV2 is ERC20, ReentrancyGuard {
         balance1 = token1.balanceOf(address(this));
 
         _update(balance0, balance1, _reserve0, _reserve1);
-        kLast = uint256(reserve0) * uint256(reserve1); // reserve0 and reserve1 are up-to-date
+        assembly {
+            // kLast = uint256(reserve0) * uint256(reserve1); // reserve0 and reserve1 are up-to-date
+            sstore(kLast.slot, mul(sload(reserve0.slot), sload(reserve1.slot)))
+        }
         emit Burn(msg.sender, amount0, amount1, to);
     }
 
