@@ -43,7 +43,7 @@ contract LibTest is Test {
     function testReal(address tokenA, address tokenB) public {
         vm.assume(tokenA != address(0) && tokenA != tokenB && tokenB != address(0));
         (address token0, address token1) = PairV2Library.sortTokens(tokenA, tokenB);
-        
+
         // token addresses are sorted
         address predicted = PairV2Library.pairFor(factory, token0, token1);
 

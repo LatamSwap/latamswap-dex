@@ -16,3 +16,6 @@
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "lib/nativo"]
+	path = lib/nativo
+	url = https://github.com/latamswap/nativo

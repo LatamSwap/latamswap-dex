@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity 0.8.19;
 
 import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
@@ -19,9 +19,6 @@ contract PairV2 is ERC20, ReentrancyGuard {
     error errInsufficientLiquidityMinted();
     error errInsufficientLiquidityBurned();
     error errInsufficientOutputAmount();
-
-    // reserve slots for balance storage
-    uint256[1 << 160] private __gapBalances;
 
     uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
 

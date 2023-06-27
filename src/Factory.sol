@@ -6,7 +6,6 @@ import {IUniswapV2Factory} from "v2-core/interfaces/IUniswapV2Factory.sol";
 import {PairV2} from "./PairV2.sol";
 import {PairV2Library} from "./PairV2Library.sol";
 
-
 contract UniswapV2Factory is IUniswapV2Factory {
     address public feeTo;
     address public feeToSetter;

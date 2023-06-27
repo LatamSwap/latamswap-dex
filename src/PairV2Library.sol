@@ -16,8 +16,9 @@ library PairV2Library {
     // calculates the CREATE2 address for a pair without making any external calls
     // @dev token must be sorted!
     function pairFor(address factory, address token0, address token1) internal pure returns (address pair) {
-        bytes memory params = abi.encode(uint256(uint160(token0)),uint256(uint160(token1)));
-        bytes memory bytecode = abi.encodePacked(type(PairV2).creationCode, uint256(uint160(token0)), uint256(uint160(token1)));
+        bytes memory params = abi.encode(uint256(uint160(token0)), uint256(uint160(token1)));
+        bytes memory bytecode =
+            abi.encodePacked(type(PairV2).creationCode, uint256(uint160(token0)), uint256(uint160(token1)));
 
         pair = Create2.computeAddress(keccak256(params), keccak256(bytecode), factory);
     }
@@ -30,7 +31,8 @@ library PairV2Library {
     {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
         (uint112 _reserve0, uint112 _reserve1,) = IUniswapV2Pair(pairFor(factory, token0, token1)).getReserves();
-        (reserveA, reserveB) = tokenA == token0 ? (uint256(_reserve0), uint256(_reserve1)) : (uint256(_reserve1), uint256(_reserve0));
+        (reserveA, reserveB) =
+            tokenA == token0 ? (uint256(_reserve0), uint256(_reserve1)) : (uint256(_reserve1), uint256(_reserve0));
     }
 
     // given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
@@ -80,7 +82,7 @@ library PairV2Library {
         require(path.length > 1, "INVALID_PATH");
         amounts = new uint256[](path.length);
         amounts[0] = amountIn;
-        unchecked {   
+        unchecked {
             for (uint256 i; i < path.length - 1; ++i) {
                 (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i], path[i + 1]);
                 amounts[i + 1] = getAmountOut(amounts[i], reserveIn, reserveOut);
