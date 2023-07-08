@@ -189,8 +189,7 @@ contract PairV2 is ERC20, ReentrancyGuard {
         if (amount0Out == 0 && amount1Out == 0) {
             revert errInsufficientOutputAmount();
         }
-        uint112 _reserve0 = reserve0;
-        uint112 _reserve1 = reserve1;
+        (uint112 _reserve0, uint112 _reserve1) = (reserve0, reserve1);
         require(amount0Out < _reserve0 && amount1Out < _reserve1, "INSUFFICIENT_LIQUIDITY");
 
         // scope for _token{0,1}, avoids stack too deep errors

@@ -9,6 +9,8 @@ import {IUniswapV2Factory} from "v2-core/interfaces/IUniswapV2Factory.sol";
 import {IUniswapV2Pair} from "v2-core/interfaces/IUniswapV2Pair.sol";
 import {UQ112x112} from "src/utils/UQ112x112.sol";
 
+import {Benchmark} from "./Benchmark.sol";
+
 contract MockFactory {
     address public feeTo;
 
@@ -24,22 +26,22 @@ contract MockFactory {
 contract MockUser {
     function addLiquidity(address pair, address _token0, address _token1, uint256 _amount0, uint256 _amount1)
         public
-        returns (uint256)
+        returns (uint256 liquidity)
     {
         ERC20(_token0).transfer(pair, _amount0);
         ERC20(_token1).transfer(pair, _amount1);
 
-        return IUniswapV2Pair(pair).mint(address(this));
+        liquidity = IUniswapV2Pair(pair).mint(address(this));
     }
 
-    function removeLiquidity(address pair, uint256 liquidity) public returns (uint256, uint256) {
+    function removeLiquidity(address pair, uint256 liquidity) public returns (uint256 a, uint256 b) {
         IUniswapV2Pair(pair).transfer(pair, liquidity);
-
-        return IUniswapV2Pair(pair).burn(address(this));
+        
+        (a , b) = IUniswapV2Pair(pair).burn(address(this));
     }
 }
 
-abstract contract BasePairTest is Test {
+abstract contract BasePairTest is Test, Benchmark {
     MockERC20 public token0;
     MockERC20 public token1;
     IUniswapV2Pair public pair;
@@ -69,7 +71,7 @@ abstract contract BasePairTest is Test {
 
     function getCurrentMarginalPrices() public view returns (uint256 price0, uint256 price1) {
         (uint112 reserve0, uint112 reserve1,) = pair.getReserves();
-
+        
         price0 = reserve0 > 0 ? uint256(UQ112x112.encode(reserve1)) / reserve0 : 0;
         price1 = reserve1 > 0 ? uint256(UQ112x112.encode(reserve0)) / reserve1 : 0;
     }
@@ -95,7 +97,13 @@ abstract contract BasePairTest is Test {
         token0.transfer(address(pair), 1 ether);
         token1.transfer(address(pair), 1 ether);
 
+        benchmarkStart("new Pair");
         uint256 liquidity = pair.mint(address(this));
+        benchmarkEnd();
+
+        benchmarkStart("get reserves");
+        pair.getReserves();
+        benchmarkEnd();
 
         assertPairReserves(1 ether, 1 ether);
         assertEq(pair.balanceOf(address(0)), pair.MINIMUM_LIQUIDITY());
@@ -110,7 +118,9 @@ abstract contract BasePairTest is Test {
 
         token0.transfer(address(pair), 2 ether);
         token1.transfer(address(pair), 2 ether);
+        benchmarkStart("add more to Pair");
         uint256 l2 = pair.mint(address(this));
+        benchmarkEnd();
 
         assertPairReserves(3 ether, 3 ether);
         assertEq(pair.balanceOf(address(this)), l1 + l2);
@@ -166,7 +176,9 @@ abstract contract BasePairTest is Test {
         uint256 liquidity = pair.mint(address(this));
 
         pair.transfer(address(pair), liquidity);
+        benchmarkStart("burn");
         pair.burn(address(this));
+        benchmarkEnd();
 
         assertEq(pair.balanceOf(address(this)), 0);
         assertEq(pair.totalSupply(), pair.MINIMUM_LIQUIDITY());
@@ -269,7 +281,9 @@ abstract contract BasePairTest is Test {
         // transfer to maintain K
         token1.transfer(address(pair), 1 ether);
 
+        benchmarkStart("swap");
         pair.swap(0.5 ether - (0.5 ether / 1000) * 3, 0 ether, address(user), "");
+        benchmarkEnd();
 
         assertPairReserves(0.5015 ether, 2 ether);
         assertEq(token0.balanceOf(address(user)), 10 ether + 0.4985 ether);
