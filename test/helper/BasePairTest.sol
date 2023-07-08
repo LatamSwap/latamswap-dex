@@ -36,8 +36,8 @@ contract MockUser {
 
     function removeLiquidity(address pair, uint256 liquidity) public returns (uint256 a, uint256 b) {
         IUniswapV2Pair(pair).transfer(pair, liquidity);
-        
-        (a , b) = IUniswapV2Pair(pair).burn(address(this));
+
+        (a, b) = IUniswapV2Pair(pair).burn(address(this));
     }
 }
 
@@ -71,7 +71,7 @@ abstract contract BasePairTest is Test, Benchmark {
 
     function getCurrentMarginalPrices() public view returns (uint256 price0, uint256 price1) {
         (uint112 reserve0, uint112 reserve1,) = pair.getReserves();
-        
+
         price0 = reserve0 > 0 ? uint256(UQ112x112.encode(reserve1)) / reserve0 : 0;
         price1 = reserve1 > 0 ? uint256(UQ112x112.encode(reserve0)) / reserve1 : 0;
     }

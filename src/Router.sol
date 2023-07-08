@@ -300,9 +300,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         require(path[0] == NATIVO, "Router: INVALID_PATH");
         amounts = PairV2Library.getAmountsIn(factory, amountOut, path);
         require(amounts[0] <= msg.value, "Router: EXCESSIVE_INPUT_AMOUNT");
-        INativo(payable(NATIVO)).depositTo{value: amounts[0]}(
-          PairV2Library.pairFor(factory, path[0], path[1])
-        );
+        INativo(payable(NATIVO)).depositTo{value: amounts[0]}(PairV2Library.pairFor(factory, path[0], path[1]));
         _swap(amounts, path, to);
         // refund dust eth, if any
         if (msg.value > amounts[0]) SafeTransferLib.safeTransferETH(msg.sender, msg.value - amounts[0]);
@@ -313,25 +311,28 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
     function _swapSupportingFeeOnTransferTokens(address[] memory path, address _to) internal virtual {
         address input;
         address output;
-        for (uint i; i < path.length - 1;) {
+        for (uint256 i; i < path.length - 1;) {
             unchecked {
-                (input, output) = (path[i], path[i + 1]);            
+                (input, output) = (path[i], path[i + 1]);
             }
             (address token0,) = PairV2Library.sortTokens(input, output);
             PairV2 pair = PairV2(PairV2Library.pairFor(factory, input, output));
-            uint amountInput;
-            uint amountOutput;
-            { // scope to avoid stack too deep errors
-                (uint reserve0, uint reserve1,) = pair.getReserves();
-                (uint reserveInput, uint reserveOutput) = input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
+            uint256 amountInput;
+            uint256 amountOutput;
+            {
+                // scope to avoid stack too deep errors
+                (uint256 reserve0, uint256 reserve1,) = pair.getReserves();
+                (uint256 reserveInput, uint256 reserveOutput) =
+                    input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
                 amountInput = input.balanceOf(address(pair)) - (reserveInput);
                 amountOutput = PairV2Library.getAmountOut(amountInput, reserveInput, reserveOutput);
             }
             unchecked {
-                (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOutput) : (amountOutput, uint(0));
+                (uint256 amount0Out, uint256 amount1Out) =
+                    input == token0 ? (uint256(0), amountOutput) : (amountOutput, uint256(0));
                 address to = i < path.length - 2 ? PairV2Library.pairFor(factory, output, path[i + 2]) : _to;
                 pair.swap(amount0Out, amount1Out, to, "");
-                ++i; 
+                ++i;
             }
         }
     }
@@ -349,8 +350,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         uint256 balanceBefore = path[path.length - 1].balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
-            path[path.length - 1].balanceOf(to) - balanceBefore >= amountOutMin,
-            "Router: INSUFFICIENT_OUTPUT_AMOUNT"
+            path[path.length - 1].balanceOf(to) - balanceBefore >= amountOutMin, "Router: INSUFFICIENT_OUTPUT_AMOUNT"
         );
     }
 
@@ -362,9 +362,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
     ) external payable virtual override ensure(deadline) {
         require(path[0] == NATIVO, "INVALID_PATH");
         uint256 amountIn = msg.value;
-        INativo(payable(NATIVO)).depositTo{value: amountIn}(
-          PairV2Library.pairFor(factory, path[0], path[1])
-        );
+        INativo(payable(NATIVO)).depositTo{value: amountIn}(PairV2Library.pairFor(factory, path[0], path[1]));
         uint256 balanceBefore = path[path.length - 1].balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
         if (path[path.length - 1].balanceOf(to) - balanceBefore < amountOutMin) {
