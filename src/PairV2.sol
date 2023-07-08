@@ -10,8 +10,9 @@ import {IUniswapV2Callee} from "v2-core/interfaces/IUniswapV2Callee.sol";
 import {IUniswapV2Factory} from "v2-core/interfaces/IUniswapV2Factory.sol";
 
 import {ERC20} from "./ERC20-pair.sol";
+import {ERC1363} from "./ERC1363.sol";
 
-contract PairV2 is ERC20, ReentrancyGuard {
+contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
     using UQ112x112 for uint224;
     using SafeTransferLib for address;
 
