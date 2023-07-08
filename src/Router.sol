@@ -1,13 +1,11 @@
-pragma solidity ^0.8.0;
+pragma solidity 0.8.19;
 
 import {IUniswapV2Factory} from "v2-core/interfaces/IUniswapV2Factory.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {IUniswapV2Router02} from "./interfaces/IUniswapV2Router02.sol";
 import {PairV2Library} from "./PairV2Library.sol";
-//import 'v2-periphery/libraries/SafeMath.sol';
 import {PairV2} from "./PairV2.sol";
 import {INativo} from "nativo/INativo.sol";
-import {IWETH} from "v2-periphery/interfaces/IWETH.sol";
 
 contract UniswapV2Router02 is IUniswapV2Router02 {
     using SafeTransferLib for address;
@@ -18,7 +16,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
 
     modifier ensure(uint256 deadline) {
         if (deadline < block.timestamp) {
-            revert("UniswapV2Router: EXPIRED");
+            revert("Router: EXPIRED");
         }
         _;
     }
@@ -200,7 +198,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
     // **** SWAP ****
     // requires the initial amount to have already been sent to the first pair
     function _swap(uint256[] memory amounts, address[] memory path, address _to) internal virtual {
-        for (uint256 i; i < path.length - 1; i++) {
+        for (uint256 i; i < path.length - 1; ++i) {
             (address input, address output) = (path[i], path[i + 1]);
             (address token0,) = PairV2Library.sortTokens(input, output);
             uint256 amountOut = amounts[i + 1];
@@ -263,10 +261,10 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint256 deadline
     ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
-        require(path[path.length - 1] == NATIVO, "UniswapV2Router: INVALID_PATH");
+        require(path[path.length - 1] == NATIVO, "Router: INVALID_PATH");
         amounts = PairV2Library.getAmountsIn(factory, amountOut, path);
         // Overall gas change: -261368 (-1.761%)
-        require(amounts[0] <= amountInMax, "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT");
+        require(amounts[0] <= amountInMax, "Router: EXCESSIVE_INPUT_AMOUNT");
         SafeTransferLib.safeTransferFrom(
             path[0], msg.sender, PairV2Library.pairFor(factory, path[0], path[1]), amounts[0]
         );
@@ -281,9 +279,9 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint256 deadline
     ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
-        require(path[path.length - 1] == NATIVO, "UniswapV2Router: INVALID_PATH");
+        require(path[path.length - 1] == NATIVO, "Router: INVALID_PATH");
         amounts = PairV2Library.getAmountsOut(factory, amountIn, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT");
+        require(amounts[amounts.length - 1] >= amountOutMin, "Router: INSUFFICIENT_OUTPUT_AMOUNT");
         SafeTransferLib.safeTransferFrom(
             path[0], msg.sender, PairV2Library.pairFor(factory, path[0], path[1]), amounts[0]
         );
@@ -299,9 +297,9 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         ensure(deadline)
         returns (uint256[] memory amounts)
     {
-        require(path[0] == NATIVO, "UniswapV2Router: INVALID_PATH");
+        require(path[0] == NATIVO, "Router: INVALID_PATH");
         amounts = PairV2Library.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= msg.value, "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT");
+        require(amounts[0] <= msg.value, "Router: EXCESSIVE_INPUT_AMOUNT");
         INativo(payable(NATIVO)).depositTo{value: amounts[0]}(
           PairV2Library.pairFor(factory, path[0], path[1])
         );
@@ -315,33 +313,25 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
     function _swapSupportingFeeOnTransferTokens(address[] memory path, address _to) internal virtual {
         address input;
         address output;
-
-        for (uint256 i; i < path.length - 1;) {
+        for (uint i; i < path.length - 1;) {
             unchecked {
-                (input, output) = (path[i], path[i + 1]);
+                (input, output) = (path[i], path[i + 1]);            
             }
             (address token0,) = PairV2Library.sortTokens(input, output);
             PairV2 pair = PairV2(PairV2Library.pairFor(factory, input, output));
-
-            uint256 amountInput;
-            uint256 amountOutput;
-            {
-                (uint256 reserve0, uint256 reserve1,) = pair.getReserves();
-                (uint256 reserveInput, uint256 reserveOutput) =
-                    input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
+            uint amountInput;
+            uint amountOutput;
+            { // scope to avoid stack too deep errors
+                (uint reserve0, uint reserve1,) = pair.getReserves();
+                (uint reserveInput, uint reserveOutput) = input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
                 amountInput = input.balanceOf(address(pair)) - (reserveInput);
                 amountOutput = PairV2Library.getAmountOut(amountInput, reserveInput, reserveOutput);
             }
-
-            (uint256 amount0Out, uint256 amount1Out) =
-                input == token0 ? (uint256(0), amountOutput) : (amountOutput, uint256(0));
-            if (i < path.length - 2) {
-                pair.swap(amount0Out, amount1Out, PairV2Library.pairFor(factory, output, path[i + 2]), "");
-            } else {
-                pair.swap(amount0Out, amount1Out, _to, "");
-            }
-            assembly {
-                i := add(i, 1)
+            unchecked {
+                (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOutput) : (amountOutput, uint(0));
+                address to = i < path.length - 2 ? PairV2Library.pairFor(factory, output, path[i + 2]) : _to;
+                pair.swap(amount0Out, amount1Out, to, "");
+                ++i; 
             }
         }
     }
@@ -360,7 +350,7 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
             path[path.length - 1].balanceOf(to) - balanceBefore >= amountOutMin,
-            "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
+            "Router: INSUFFICIENT_OUTPUT_AMOUNT"
         );
     }
 
@@ -389,13 +379,13 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint256 deadline
     ) external virtual override ensure(deadline) {
-        require(path[path.length - 1] == NATIVO, "UniswapV2Router: INVALID_PATH");
+        require(path[path.length - 1] == NATIVO, "Router: INVALID_PATH");
         SafeTransferLib.safeTransferFrom(
             path[0], msg.sender, PairV2Library.pairFor(factory, path[0], path[1]), amountIn
         );
         _swapSupportingFeeOnTransferTokens(path, address(this));
         uint256 amountOut = NATIVO.balanceOf(address(this));
-        require(amountOut >= amountOutMin, "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT");
+        require(amountOut >= amountOutMin, "Router: INSUFFICIENT_OUTPUT_AMOUNT");
         INativo(payable(NATIVO)).withdrawTo(to, amountOut);
     }
 
