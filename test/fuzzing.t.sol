@@ -62,10 +62,11 @@ contract TestCore is Test {
         vm.label(address(feeToken), "FEE_TOKEN");
 
         // weth = new WETH();
-        weth = WETH(payable(address(new Nativo("Nativo Wrapper Ether", "nETH"))));
+        weth = WETH(payable(address(new Nativo("Nativo Wrapper Ether", "nETH", makeAddr("treasuryNativo"), makeAddr("treasuryNativo")))));
         vm.label(address(weth), "WETH");
 
-        nativo = new Nativo("Nativo Wrapper Ether", "nETH");
+        nativo = new Nativo("Nativo Wrapper Ether", "nETH", makeAddr("treasuryNativo"), makeAddr("treasuryNativo"));
+        vm.label(address(nativo), "NATIVO");
 
         // Deploy factory and Pairs
         testFactory = new UniswapV2Factory(address(this));

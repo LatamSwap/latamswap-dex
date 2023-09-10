@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity 0.8.20;
 
 import {ERC20} from "./ERC20-pair.sol";
 import {IERC1363Spender} from "openzeppelin/interfaces/IERC1363Spender.sol";
@@ -83,8 +83,8 @@ abstract contract ERC1363 is ERC20 {
     }
 
     function transferFromAndCall(address from, address to, uint256 amount, bytes memory data) public returns (bool) {
-        // @dev _spendAllowance will revert if not has enough allowance
-        _spendAllowance(from, msg.sender, amount);
+        // @dev _useAllowance will revert if not has enough allowance
+        _useAllowance(from, amount);
         // now lets transfer nativo tokens to the `to` address
         _transfer(from, to, amount);
 
