@@ -46,9 +46,8 @@ abstract contract ERC20 {
         uint256 value;
     }
 
-
     uint256[1 << 160] private __gapBalances;
-    
+
     // @dev _TOTALSUPPLY_SLOT = uint256(keccak256("ERC20_TOTALSUPPLY")) - 1;
     uint256 internal constant _TOTALSUPPLY_SLOT = 0x80184635fb759c2e2becdf0161d7c8162d7f6308ac5335f500b64180ffc7e07a;
 
@@ -60,7 +59,6 @@ abstract contract ERC20 {
 
     bytes32 internal immutable INITIAL_DOMAIN_SEPARATOR;
 
-    
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -206,7 +204,6 @@ abstract contract ERC20 {
         }
 
         emit Transfer(from, address(0), amount);
-        
     }
 
     /*//////////////////////////////////////////////////////////////

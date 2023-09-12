@@ -32,6 +32,7 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
     // keccak256("ReservesSlot")
     // 0xedc901ab578933ab38a0242906bf37b22815e4e138c778abb592d1a05be207d9
     bytes32 internal constant _reserveSlot = 0xedc901ab578933ab38a0242906bf37b22815e4e138c778abb592d1a05be207d8;
+
     struct ReserveSlot {
         uint112 reserve0; // uses single storage slot, accessible via getReserves
         uint112 reserve1; // uses single storage slot, accessible via getReserves
@@ -72,8 +73,6 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
             reserveSlot.slot := _reserveSlot
         }
     }
-    
-
 
     // update reserves and, on the first call per block, price accumulators
     function _update(uint256 balance0, uint256 balance1, uint112 _reserve0, uint112 _reserve1) private {
@@ -82,7 +81,7 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         }
 
         ReserveSlot storage reserves = _getReserves();
-        
+
         unchecked {
             uint256 timeElapsed = block.timestamp - uint256(reserves.blockTimestampLast); // overflow is desired
             if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
@@ -129,14 +128,15 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         uint256 amount1 = balance1 - reserves.reserve1;
         // gas savings, must be defined here since totalSupply can update in _mintFee
         uint256 cacheTotalSupply = _totalSupply().value;
-        
+
         if (cacheTotalSupply == 0) {
             liquidity = FixedPointMathLib.sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
             // permanently nonReentrant the first MINIMUM_LIQUIDITY tokens
             _mint(address(0), MINIMUM_LIQUIDITY);
         } else {
-            liquidity =
-                FixedPointMathLib.min(amount0 * cacheTotalSupply / reserves.reserve0, amount1 * cacheTotalSupply / reserves.reserve1);
+            liquidity = FixedPointMathLib.min(
+                amount0 * cacheTotalSupply / reserves.reserve0, amount1 * cacheTotalSupply / reserves.reserve1
+            );
         }
         if (liquidity == 0) {
             revert errInsufficientLiquidityMinted();
@@ -188,9 +188,9 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         balance1 = token1.balanceOf(address(this));
 
         _update(balance0, balance1, reserves.reserve0, reserves.reserve1);
-        
+
         kLast = uint256(reserves.reserve0) * uint256(reserves.reserve1);
-        
+
         emit Burn(msg.sender, amount0, amount1, to);
     }
 
@@ -199,7 +199,7 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         if (amount0Out == 0 && amount1Out == 0) {
             revert errInsufficientOutputAmount();
         }
-        
+
         (uint112 _reserve0, uint112 _reserve1) = (_getReserves().reserve0, _getReserves().reserve1);
         require(amount0Out < _reserve0 && amount1Out < _reserve1, "INSUFFICIENT_LIQUIDITY");
 
@@ -224,7 +224,7 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
                 amount1In = balance1 - _aux;
             }
         }
-        
+
         if (amount0In == 0 && amount1In == 0) {
             revert("INSUFFICIENT_INPUT_AMOUNT");
         }
@@ -254,6 +254,11 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
 
     // force reserves to match balances
     function sync() external nonReentrant {
-        _update(token0.balanceOf(address(this)), token1.balanceOf(address(this)), _getReserves().reserve0, _getReserves().reserve1);
+        _update(
+            token0.balanceOf(address(this)),
+            token1.balanceOf(address(this)),
+            _getReserves().reserve0,
+            _getReserves().reserve1
+        );
     }
 }
