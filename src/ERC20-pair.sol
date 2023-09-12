@@ -41,13 +41,14 @@ abstract contract ERC20 {
     /*//////////////////////////////////////////////////////////////
                               ERC20 STORAGE
     //////////////////////////////////////////////////////////////*/
+    // idea taken from https://github.com/Philogy/meth-weth/blob/5219af2f4ab6c91f8fac37b2633da35e20345a9e/src/reference/ReferenceMETH.sol
+    struct Value {
+        uint256 value;
+    }
 
-    // Balances of users will be stored onfrom 0x000000000000
-    // reserve slots for balance storage
+
     uint256[1 << 160] private __gapBalances;
-
-    mapping(address user => mapping(address spender => uint256 amount)) public allowance;
-
+    
     // @dev _TOTALSUPPLY_SLOT = uint256(keccak256("ERC20_TOTALSUPPLY")) - 1;
     uint256 internal constant _TOTALSUPPLY_SLOT = 0x80184635fb759c2e2becdf0161d7c8162d7f6308ac5335f500b64180ffc7e07a;
 
@@ -59,8 +60,7 @@ abstract contract ERC20 {
 
     bytes32 internal immutable INITIAL_DOMAIN_SEPARATOR;
 
-    mapping(address user => uint256 nonce) public nonces;
-
+    
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -84,26 +84,12 @@ abstract contract ERC20 {
         return "LATAMSWAP-V2";
     }
 
-    function totalSupply() public view returns (uint256 _totalSupply) {
-        /// @solidity memory-safe-assembly
-        assembly {
-            _totalSupply := sload(_TOTALSUPPLY_SLOT)
-        }
+    function totalSupply() public view returns (uint256) {
+        return _totalSupply().value;
     }
 
-    function balanceOf(address account) public view returns (uint256 _balance) {
-        /// @solidity memory-safe-assembly
-        assembly {
-            _balance := sload(account)
-        }
-    }
-
-    function approve(address spender, uint256 amount) external returns (bool) {
-        allowance[msg.sender][spender] = amount;
-
-        emit Approval(msg.sender, spender, amount);
-
-        return true;
+    function balanceOf(address account) public view returns (uint256) {
+        return _balanceOf(account).value;
     }
 
     function transfer(address to, uint256 amount) external returns (bool) {
@@ -131,10 +117,7 @@ abstract contract ERC20 {
     }
 
     function transferFrom(address from, address to, uint256 amount) external returns (bool) {
-        uint256 allowed = allowance[from][msg.sender]; // Saves gas for limited approvals.
-
-        if (allowed != type(uint256).max) allowance[from][msg.sender] = allowed - amount;
-
+        _useAllowance(from, amount);
         _transfer(from, to, amount);
 
         return true;
@@ -147,7 +130,7 @@ abstract contract ERC20 {
     function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s)
         external
     {
-        require(deadline >= block.timestamp, "PERMIT_DEADLINE_EXPIRED");
+        if (deadline < block.timestamp) revert PermitExpired();
 
         // Unchecked because the only math done is incrementing
         // the owner's nonce which cannot realistically overflow.
@@ -165,7 +148,7 @@ abstract contract ERC20 {
                                 owner,
                                 spender,
                                 value,
-                                nonces[owner]++,
+                                _nonces(owner).value++,
                                 deadline
                             )
                         )
@@ -178,7 +161,7 @@ abstract contract ERC20 {
 
             require(recoveredAddress != address(0) && recoveredAddress == owner, "INVALID_SIGNER");
 
-            allowance[recoveredAddress][spender] = value;
+            _allowance(recoveredAddress, spender).value = value;
         }
 
         emit Approval(owner, spender, value);
@@ -205,76 +188,106 @@ abstract contract ERC20 {
     //////////////////////////////////////////////////////////////*/
 
     function _mint(address to, uint256 amount) internal virtual {
-        /// @solidity memory-safe-assembly
-        assembly {
-            // totalSupply += amount
-            sstore(_TOTALSUPPLY_SLOT, add(sload(_TOTALSUPPLY_SLOT), amount))
-
-            // Cannot overflow because the sum of all user
-            // balances can't exceed the max uint256 value.
-            // unchecked {
-            //    balanceOf[to] += amount;
-            // }
-            sstore(to, add(sload(to), amount))
+        unchecked {
+            _balanceOf(to).value += amount;
+            _totalSupply().value += amount;
         }
-
         emit Transfer(address(0), to, amount);
     }
 
     function _burn(address from, uint256 amount) internal virtual {
-        /// @solidity memory-safe-assembly
-        assembly {
-            // check underflow
-            let _balance := sload(from)
-            if lt(_balance, amount) {
-                mstore(0x00, 0xf4d678b8) // `InsufficientBalance()`.
-                revert(0x1c, 0x04)
-            }
+        Value storage _balance = _balanceOf(from);
 
-            // totalSupply -= amount
-            sstore(_TOTALSUPPLY_SLOT, sub(sload(_TOTALSUPPLY_SLOT), amount))
+        if (_balance.value < amount) revert InsufficientBalance();
 
-            // balanceOf[from] -= amount;
-            sstore(from, sub(_balance, amount))
+        unchecked {
+            _balance.value -= amount;
+            _totalSupply().value -= amount;
         }
 
         emit Transfer(from, address(0), amount);
+        
     }
 
     /*//////////////////////////////////////////////////////////////
                         INTERNAL HELPERS LOGIC
     //////////////////////////////////////////////////////////////*/
 
+    function approve(address spender, uint256 amount) external returns (bool) {
+        _allowance(msg.sender, spender).value = amount;
+
+        emit Approval(msg.sender, spender, amount);
+        return true;
+    }
+
     function _approve(address owner, address spender, uint256 amount) internal {
-        allowance[owner][spender] = amount;
+        _allowance(owner, spender).value = amount;
 
         emit Approval(owner, spender, amount);
     }
 
-    function _spendAllowance(address owner, address spender, uint256 amount) internal {
-        uint256 allowed = allowance[owner][spender]; // Saves gas for limited approvals.
+    function allowance(address owner, address spender) external view returns (uint256) {
+        return _allowance(owner, spender).value;
+    }
 
-        if (allowed != type(uint256).max) allowance[owner][spender] = allowed - amount;
+    function nonces(address owner) external view returns (uint256) {
+        return _nonces(owner).value;
+    }
+
+    // idea taken from https://github.com/Philogy/meth-weth/blob/5219af2f4ab6c91f8fac37b2633da35e20345a9e/src/reference/ReferenceMETH.sol
+    function _balanceOf(address acc) internal pure returns (Value storage value) {
+        /// @solidity memory-safe-assembly
+        assembly {
+            value.slot := acc
+        }
+    }
+
+    function _totalSupply() internal pure returns (Value storage value) {
+        /// @solidity memory-safe-assembly
+        assembly {
+            value.slot := _TOTALSUPPLY_SLOT
+        }
+    }
+
+    // idea taken from https://github.com/Philogy/meth-weth/blob/5219af2f4ab6c91f8fac37b2633da35e20345a9e/src/reference/ReferenceMETH.sol
+    function _allowance(address owner, address spender) internal pure returns (Value storage value) {
+        /// @solidity memory-safe-assembly
+        assembly {
+            mstore(0x00, owner)
+            mstore(0x20, spender)
+            value.slot := keccak256(0x00, 0x40)
+        }
+    }
+
+    function _nonces(address owner) internal pure returns (Value storage value) {
+        /// @solidity memory-safe-assembly
+        assembly {
+            mstore(0x00, 0xff) // just use a simple push1(0xff) to avoid collisions
+            mstore(0x20, owner)
+            value.slot := keccak256(0x00, 0x40)
+        }
+    }
+
+    // idea taken from https://github.com/Philogy/meth-weth/blob/5219af2f4ab6c91f8fac37b2633da35e20345a9e/src/reference/ReferenceMETH.sol
+    function _useAllowance(address owner, uint256 amount) internal {
+        Value storage currentAllowance = _allowance(owner, msg.sender);
+        if (currentAllowance.value < amount) revert InsufficientAllowance();
+        unchecked {
+            // if msg.sender try to spend more than allowed it will do an arythmetic underflow revert
+            if (currentAllowance.value != type(uint256).max) currentAllowance.value -= amount;
+        }
     }
 
     function _transfer(address from, address to, uint256 amount) internal {
-        /// @solidity memory-safe-assembly
-        assembly {
-            // balanceOf[from] -= amount;
-            let _balance := sload(from)
-            if lt(_balance, amount) {
-                mstore(0x00, 0xf4d678b8) // `InsufficientBalance()`.
-                revert(0x1c, 0x04)
-            }
-            sstore(from, sub(_balance, amount))
+        Value storage _balanceFrom = _balanceOf(from);
 
-            // Cannot overflow because the sum of all user
-            // balances can't exceed the max uint256 value.
-            // unchecked {
-            //     balanceOf[to] += amount;
-            // }
-            sstore(to, add(sload(to), amount))
+        if (_balanceFrom.value < amount) revert InsufficientBalance();
+
+        unchecked {
+            _balanceFrom.value -= amount;
+            _balanceOf(to).value += amount;
         }
+
         emit Transfer(from, to, amount);
     }
 }

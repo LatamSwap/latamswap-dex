@@ -493,7 +493,7 @@ contract TestCore is Test {
             (uint256 userBalBefore) = testWethPair.balanceOf(address(this));
             uint256 kBefore = reserveABefore * reserveBBefore;
 
-            if (approveMax) {
+    
                 {
                     (uint8 v, bytes32 r, bytes32 s) = vm.sign(
                         privateKey,
@@ -506,7 +506,7 @@ contract TestCore is Test {
                                         PERMIT_TYPEHASH,
                                         owner,
                                         address(testRouter02),
-                                        type(uint256).max,
+                                        approveMax ? type(uint256).max :  liquidity,
                                         0,
                                         block.timestamp
                                     )
@@ -532,37 +532,7 @@ contract TestCore is Test {
                         assertLt(userBalAfter, userBalBefore, "USER BAL CHECK");
                     } catch { /*assert(false)*/ } // overflow
                 }
-            } else {
-                (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-                    privateKey,
-                    keccak256(
-                        abi.encodePacked(
-                            "\x19\x01",
-                            testStablePair.DOMAIN_SEPARATOR(),
-                            keccak256(
-                                abi.encode(PERMIT_TYPEHASH, owner, address(testRouter02), liquidity, 0, block.timestamp)
-                            )
-                        )
-                    )
-                );
-
-                // ACTION:
-                try testRouter02.removeLiquidityETHWithPermitSupportingFeeOnTransferTokens(
-                    address(feeToken), liquidity, 0, 0, owner, MAX, approveMax, v, r, s
-                ) {
-                    // POSTCONDTION:
-                    (uint256 reserveAAfter, uint256 reserveBAfter,) = testWethPair.getReserves();
-                    (uint256 totalSupplyAfter) = testWethPair.totalSupply();
-                    (uint256 userBalAfter) = testWethPair.balanceOf(address(this));
-                    uint256 kAfter = reserveAAfter * reserveBAfter;
-
-                    assertLt(reserveAAfter, reserveABefore, "RESERVE TOKEN A CHECK");
-                    assertLt(reserveBAfter, reserveBBefore, "RESERVE TOKEN B CHECK");
-                    assertLt(kAfter, kBefore, "K CHECK");
-                    assertLt(totalSupplyAfter, totalSupplyBefore, "TOTAL SUPPLY CHECK");
-                    assertLt(userBalAfter, userBalBefore, "USER BAL CHECK");
-                } catch { /*assert(false)*/ } // overflow
-            }
+            
         } catch { /*assert(false)*/ } // overflow
     }
 
