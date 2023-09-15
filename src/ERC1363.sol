@@ -1,9 +1,10 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import {ERC20} from "./ERC20-pair.sol";
 import {IERC1363Spender} from "openzeppelin/interfaces/IERC1363Spender.sol";
 import {IERC1363Receiver} from "openzeppelin/interfaces/IERC1363Receiver.sol";
+
+import {ERC20} from "solady/tokens/ERC20.sol";
 
 /// @dev implementation of https://eips.ethereum.org/EIPS/eip-1363
 
@@ -84,7 +85,7 @@ abstract contract ERC1363 is ERC20 {
 
     function transferFromAndCall(address from, address to, uint256 amount, bytes memory data) public returns (bool) {
         // @dev _useAllowance will revert if not has enough allowance
-        _useAllowance(from, amount);
+        _spendAllowance(from, msg.sender, amount);
         // now lets transfer nativo tokens to the `to` address
         _transfer(from, to, amount);
 
@@ -96,20 +97,6 @@ abstract contract ERC1363 is ERC20 {
             revert Receiver_transferReceived_rejected();
         }
         return true;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                   EXTRA ERC1363 LOGIC FOR NATIVO
-    //////////////////////////////////////////////////////////////*/
-
-    function depositTransferAndCall(address to, uint256 amount) external payable returns (bool) {
-        _mint(msg.sender, msg.value);
-        return transferAndCall(to, amount, "");
-    }
-
-    function depositTransferAndCall(address to, uint256 amount, bytes memory data) external payable returns (bool) {
-        _mint(msg.sender, msg.value);
-        return transferAndCall(to, amount, data);
     }
 
     /*//////////////////////////////////////////////////////////////
