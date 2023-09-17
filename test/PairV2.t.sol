@@ -8,126 +8,297 @@ import "./helper/BasePairTest.sol";
 import {IUniswapV2Pair} from "v2-core/interfaces/IUniswapV2Pair.sol";
 import {PairV2} from "src/PairV2.sol";
 import {PairV2Library} from "src/PairV2Library.sol";
-
+import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 
 contract PairV2Test is Test {
-  address factory = makeAddr("factory");
+    using SafeTransferLib for address;
 
-  MockERC20 tokenA;
-  MockERC20 tokenB;
-  address token0;
-  address token1;
+    address factory = makeAddr("factory");
 
-  MockERC20 unitokenA;
-  MockERC20 unitokenB;
-  address unitoken0;
-  address unitoken1;
+    MockERC20 tokenA;
+    MockERC20 tokenB;
+    address token0;
+    address token1;
 
+    MockERC20 unitokenA;
+    MockERC20 unitokenB;
+    address unitoken0;
+    address unitoken1;
 
+    // events for test
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Sync(uint112 reserve0, uint112 reserve1);
+    event Swap(
+        address indexed sender,
+        uint256 amount0In,
+        uint256 amount1In,
+        uint256 amount0Out,
+        uint256 amount1Out,
+        address indexed to
+    );
+    event Burn(address indexed sender, uint256 amount0, uint256 amount1, address indexed to);
 
-  PairV2 pair;
-  IUniswapV2Pair uniPair;
-  
-  function setUp() public {
-      tokenA = new MockERC20("Token A", "tknA", 18);
-      tokenB = new MockERC20("Token B", "tknB", 18);
-      (token0, token1) = PairV2Library.sortTokens(address(tokenA), address(tokenB));
+    PairV2 pair;
+    IUniswapV2Pair uniPair;
 
-      tokenA.mint(address(this), 100 ether);
-      tokenB.mint(address(this), 100 ether);
-      
-      unitokenA = new MockERC20("Token A", "tknA", 18);
-      unitokenB = new MockERC20("Token B", "tknB", 18);
-      (unitoken0, unitoken1) = PairV2Library.sortTokens(address(unitokenA), address(unitokenB));
+    uint256 MINIMUM_LIQUIDITY;
 
-      unitokenA.mint(address(this), 100 ether);
-      unitokenB.mint(address(this), 100 ether);
-      
-      
-      vm.prank(factory);
-      pair = new PairV2(token0, token1);
+    function setUp() public {
+        tokenA = new MockERC20("Token A", "tknA", 18);
+        tokenB = new MockERC20("Token B", "tknB", 18);
+        (token0, token1) = PairV2Library.sortTokens(address(tokenA), address(tokenB));
 
-      
-      MockFactory uniFactory = new MockFactory(makeAddr("uni"));
-      uniFactory.setFeeTo(makeAddr("uni"));
-      vm.prank(address(uniFactory));
-      address uniswapV2Pair = address(deployCode("test/univ2/UniswapV2Pair.json"));
-      vm.label(uniswapV2Pair, "uniPair");
-      uniPair = IUniswapV2Pair(uniswapV2Pair);
+        tokenA.mint(address(this), 1001 ether);
+        tokenB.mint(address(this), 1001 ether);
 
-      vm.prank(address(uniFactory));
-      uniPair.initialize(unitoken0, unitoken1);
-  }
+        unitokenA = new MockERC20("Token A", "tknA", 18);
+        unitokenB = new MockERC20("Token B", "tknB", 18);
+        (unitoken0, unitoken1) = PairV2Library.sortTokens(address(unitokenA), address(unitokenB));
 
-  function test_Mint() public {
-    MockERC20(token0).transfer(address(pair), 1 ether);
-    MockERC20(token1).transfer(address(pair), 4 ether);
+        unitokenA.mint(address(this), 1001 ether);
+        unitokenB.mint(address(this), 1001 ether);
 
-    pair.mint(address(this));
+        vm.prank(factory);
+        pair = new PairV2(token0, token1);
 
-    assertEq(pair.MINIMUM_LIQUIDITY(), 1e3);
-    assertEq(pair.totalSupply(), 2 ether, "Expected liquidity not match");
-    assertEq(pair.balanceOf(address(this)), 2 ether - pair.MINIMUM_LIQUIDITY());
+        MINIMUM_LIQUIDITY = pair.MINIMUM_LIQUIDITY();
 
-    assertEq(MockERC20(token0).balanceOf(address(pair)), 1 ether);
-    assertEq(MockERC20(token1).balanceOf(address(pair)), 4 ether);
-    (uint256 reserve0, uint256 reserve1, ) = pair.getReserves();
-    assertEq(reserve0, 1 ether);
-    assertEq(reserve1, 4 ether);
-    /*
-    
-      .to.emit(pair, 'Transfer')
-      .withArgs(AddressZero, AddressZero, MINIMUM_LIQUIDITY)
-      .to.emit(pair, 'Transfer')
-      .withArgs(AddressZero, wallet.address, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
-      .to.emit(pair, 'Sync')
-      .withArgs(token0Amount, token1Amount)
-      .to.emit(pair, 'Mint')
-      .withArgs(wallet.address, token0Amount, token1Amount)
+        MockFactory uniFactory = new MockFactory(makeAddr("uni"));
+        uniFactory.setFeeTo(makeAddr("uni"));
+        vm.prank(address(uniFactory));
+        address uniswapV2Pair = address(deployCode("test/univ2/UniswapV2Pair.json"));
+        vm.label(uniswapV2Pair, "uniPair");
+        uniPair = IUniswapV2Pair(uniswapV2Pair);
 
-    
-    */
-  }
-
-  function test_Skim() public {
-    address skimmer = makeAddr("skimmer");
-    
-    tokenA.transfer(address(pair), 10);
-    pair.skim(skimmer);
-    assertEq(tokenA.balanceOf(skimmer), 10);
-    
-    tokenB.transfer(address(pair), 10);
-    pair.skim(skimmer);
-    assertEq(tokenB.balanceOf(skimmer), 10);
-    
-    tokenA.transfer(address(pair), 10);
-    tokenB.transfer(address(pair), 10);
-    pair.skim(skimmer);
-    assertEq(tokenA.balanceOf(skimmer), 20);
-    assertEq(tokenB.balanceOf(skimmer), 20);
-  }
-
-  function test_MintLiquidity(uint256 amount0, uint256 amount1) public {
-    amount0= bound(amount0, 0, 100 ether);
-    amount1= bound(amount1, 0, 100 ether);
-
-    MockERC20(token0).transfer(address(pair), amount0);
-    MockERC20(token1).transfer(address(pair), amount1);
-
-    MockERC20(unitoken0).transfer(address(uniPair), amount0);
-    MockERC20(unitoken1).transfer(address(uniPair), amount1);
-    
-    try uniPair.mint(address(this)) {
-    } catch Error(string memory reason) {
-      vm.expectRevert();
-      pair.mint(address(this));
-      return;
+        vm.prank(address(uniFactory));
+        uniPair.initialize(unitoken0, unitoken1);
     }
 
-    pair.mint(address(this));
-    assertEq(pair.totalSupply(), uniPair.totalSupply());
-  }
+    function addLiquidity(uint256 token0Amount, uint256 token1Amount) internal {
+        MockERC20(token0).transfer(address(pair), token0Amount);
+        MockERC20(token1).transfer(address(pair), token1Amount);
+        pair.mint(address(this));
+    }
+
+    function test_Mint() public {
+        MockERC20(token0).transfer(address(pair), 1 ether);
+        MockERC20(token1).transfer(address(pair), 4 ether);
+
+        vm.expectEmit(true, true, true, false, address(pair));
+        emit Transfer(address(0), address(0), MINIMUM_LIQUIDITY);
+        vm.expectEmit(true, true, true, false, address(pair));
+        emit Transfer(address(0), address(this), 2 ether - MINIMUM_LIQUIDITY);
+        vm.expectEmit(true, true, false, false, address(pair));
+        emit Sync(1 ether, 4 ether);
+        pair.mint(address(this));
+
+        assertEq(pair.MINIMUM_LIQUIDITY(), 1e3);
+        assertEq(pair.totalSupply(), 2 ether, "Expected liquidity not match");
+        assertEq(pair.balanceOf(address(this)), 2 ether - MINIMUM_LIQUIDITY);
+
+        assertEq(MockERC20(token0).balanceOf(address(pair)), 1 ether);
+        assertEq(MockERC20(token1).balanceOf(address(pair)), 4 ether);
+        (uint256 reserve0, uint256 reserve1,) = pair.getReserves();
+        assertEq(reserve0, 1 ether);
+        assertEq(reserve1, 4 ether);
+    }
+
+    function test_Skim() public {
+        address skimmer = makeAddr("skimmer");
+
+        tokenA.transfer(address(pair), 10);
+        pair.skim(skimmer);
+        assertEq(tokenA.balanceOf(skimmer), 10);
+
+        tokenB.transfer(address(pair), 10);
+        pair.skim(skimmer);
+        assertEq(tokenB.balanceOf(skimmer), 10);
+
+        tokenA.transfer(address(pair), 10);
+        tokenB.transfer(address(pair), 10);
+        pair.skim(skimmer);
+        assertEq(tokenA.balanceOf(skimmer), 20);
+        assertEq(tokenB.balanceOf(skimmer), 20);
+    }
+
+    function test_MintLiquidity(uint256 amount0, uint256 amount1) public {
+        amount0 = bound(amount0, 0, 100 ether);
+        amount1 = bound(amount1, 0, 100 ether);
+
+        token0.safeTransfer(address(pair), amount0);
+        token1.safeTransfer(address(pair), amount1);
+
+        unitoken0.safeTransfer(address(uniPair), amount0);
+        unitoken1.safeTransfer(address(uniPair), amount1);
+
+        try uniPair.mint(address(this)) {}
+        catch Error(string memory reason) {
+            vm.expectRevert();
+            pair.mint(address(this));
+            return;
+        }
+
+        pair.mint(address(this));
+        assertEq(pair.totalSupply(), uniPair.totalSupply());
+    }
+
+    function test_SwapToken0() public {
+        uint256 token0Amount = 5 ether;
+        uint256 token1Amount = 10 ether;
+        addLiquidity(token0Amount, token1Amount);
+
+        uint256 swapAmount = 1 ether;
+        uint256 expectedOutputAmount = 1662497915624478906;
+        MockERC20(token0).transfer(address(pair), swapAmount);
+
+        vm.expectEmit(true, true, true, false, address(token1));
+        emit Transfer(address(pair), address(this), expectedOutputAmount);
+
+        vm.expectEmit(true, true, false, false, address(pair));
+        emit Sync(uint112(token0Amount + 1 ether), uint112(token1Amount - expectedOutputAmount));
+
+        vm.expectEmit(true, true, true, true, address(pair));
+        emit Swap(address(this), swapAmount, 0, 0, expectedOutputAmount, address(this));
+
+        pair.swap(0, expectedOutputAmount, address(this), "");
+
+        (uint112 reserve0, uint112 reserve1,) = pair.getReserves();
+        assertEq(reserve0, token0Amount + swapAmount);
+        assertEq(reserve1, token1Amount - expectedOutputAmount);
+
+        assertEq(token0.balanceOf(address(pair)), token0Amount + swapAmount);
+        assertEq(token1.balanceOf(address(pair)), token1Amount - expectedOutputAmount);
+
+        uint256 totalSupplyToken0 = MockERC20(token0).totalSupply();
+        uint256 totalSupplyToken1 = MockERC20(token1).totalSupply();
+        assertEq(token0.balanceOf(address(this)), totalSupplyToken0 - token0Amount - swapAmount);
+        assertEq(token1.balanceOf(address(this)), totalSupplyToken1 - token1Amount + expectedOutputAmount);
+    }
+
+    function test_SwapToken1() public {
+        uint256 token0Amount = 5 ether;
+        uint256 token1Amount = 10 ether;
+        addLiquidity(token0Amount, token1Amount);
+
+        uint256 swapAmount = 1 ether;
+        uint256 expectedOutputAmount = 453305446940074565;
+        token1.safeTransfer(address(pair), swapAmount);
+
+        vm.expectEmit(true, true, true, false, address(token0));
+        emit Transfer(address(pair), address(this), expectedOutputAmount);
+
+        vm.expectEmit(true, true, false, false, address(pair));
+        emit Sync(uint112(token0Amount - expectedOutputAmount), uint112(token1Amount + swapAmount));
+
+        vm.expectEmit(true, true, true, true, address(pair));
+        emit Swap(address(this), 0, swapAmount, expectedOutputAmount, 0, address(this));
+
+        pair.swap(expectedOutputAmount, 0, address(this), "");
+
+        (uint112 reserve0, uint112 reserve1,) = pair.getReserves();
+        assertEq(reserve0, token0Amount - expectedOutputAmount);
+        assertEq(reserve1, token1Amount + swapAmount);
+
+        assertEq(token0.balanceOf(address(pair)), token0Amount - expectedOutputAmount);
+        assertEq(token1.balanceOf(address(pair)), token1Amount + swapAmount);
+
+        uint256 totalSupplyToken0 = MockERC20(token0).totalSupply();
+        uint256 totalSupplyToken1 = MockERC20(token1).totalSupply();
+        assertEq(token0.balanceOf(address(this)), totalSupplyToken0 - token0Amount + expectedOutputAmount);
+        assertEq(token1.balanceOf(address(this)), totalSupplyToken1 - token1Amount - swapAmount);
+    }
+
+    function test_Burn() public {
+        uint256 token0Amount = 3 ether;
+        uint256 token1Amount = 3 ether;
+        addLiquidity(token0Amount, token1Amount);
+
+        uint256 expectedLiquidity = 3 ether;
+        pair.transfer(address(pair), expectedLiquidity - MINIMUM_LIQUIDITY);
+
+        vm.expectEmit(true, true, true, false, address(pair));
+        emit Transfer(address(pair), address(0), expectedLiquidity - MINIMUM_LIQUIDITY);
+
+        vm.expectEmit(true, true, true, false, token0);
+        emit Transfer(address(pair), address(this), token0Amount - 1000);
+
+        vm.expectEmit(true, true, true, false, token1);
+        emit Transfer(address(pair), address(this), token1Amount - 1000);
+
+        vm.expectEmit(true, true, false, false, address(pair));
+        emit Sync(1000, 1000);
+
+        vm.expectEmit(true, true, true, true, address(pair));
+        emit Burn(address(this), token0Amount - 1000, token1Amount - 1000, address(this));
+
+        pair.burn(address(this));
+
+        assertEq(pair.balanceOf(address(this)), 0);
+        assertEq(pair.totalSupply(), MINIMUM_LIQUIDITY);
+        assertEq(token0.balanceOf(address(pair)), 1000);
+        assertEq(token1.balanceOf(address(pair)), 1000);
+        
+    uint256 totalSupplyToken0 = MockERC20(token0).totalSupply();
+    uint256 totalSupplyToken1 =  MockERC20(token1).totalSupply();
+
+    assertEq(token0.balanceOf(address(this)), totalSupplyToken0 - 1000);
+    assertEq(token1.balanceOf(address(this)), totalSupplyToken1 - 1000);
+    
+    }
+
+    function test_Fees() public {
+      
+     uint256 token0Amount =1000 ether;
+    uint256 token1Amount =1000 ether;
+     addLiquidity(token0Amount, token1Amount);
+
+    uint256 swapAmount =1 ether;
+    uint256 expectedOutputAmount =996006981039903216;
+    token1.safeTransfer(address(pair), swapAmount);
+    pair.swap(expectedOutputAmount, 0, address(this), "");
+
+    uint256 expectedLiquidity =1000 ether;
+    pair.transfer(address(pair), expectedLiquidity - MINIMUM_LIQUIDITY);
+    pair.burn(address(this));
+    
+    assertEq(pair.totalSupply(), MINIMUM_LIQUIDITY + 249750499251388);
+
+    assertEq(pair.balanceOf(address(factory)), 249750499251388, "Expected factory fee not match");
+
+    // using 1000 here instead of the symbolic MINIMUM_LIQUIDITY because the amounts only happen to be equal...
+    // ...because the initial liquidity amounts were equal
+    assertEq(token0.balanceOf(address(pair)), 1000 + 249501683697445, "Expected liquidity not match");
+    //expect(await token1.balanceOf(pair.address)).to.eq(bigNumberify(1000).add('250000187312969'))
+    }
+
+
+    function test_Fees2() public {
+      
+     uint256 token0Amount =1000 ether;
+    uint256 token1Amount =1000 ether;
+      MockERC20(unitoken0).transfer(address(uniPair), token0Amount);
+        MockERC20(unitoken1).transfer(address(uniPair), token1Amount);
+        uniPair.mint(address(this));
+
+    uint256 swapAmount =1 ether;
+    uint256 expectedOutputAmount =996006981039903216;
+    unitoken1.safeTransfer(address(uniPair), swapAmount);
+    uniPair.swap(expectedOutputAmount, 0, address(this), "");
+
+    uint256 expectedLiquidity =1000 ether;
+    uniPair.transfer(address(uniPair), expectedLiquidity - MINIMUM_LIQUIDITY);
+    uniPair.burn(address(this));
+    
+    assertEq(uniPair.totalSupply(), MINIMUM_LIQUIDITY + 249750499251388);
+
+    assertEq(uniPair.balanceOf(address(factory)), 249750499251388, "Expected factory fee not match");
+
+    // using 1000 here instead of the symbolic MINIMUM_LIQUIDITY because the amounts only happen to be equal...
+    // ...because the initial liquidity amounts were equal
+    assertEq(token0.balanceOf(address(pair)), 1000 + 249501683697445, "Expected liquidity not match");
+    //expect(await token1.balanceOf(pair.address)).to.eq(bigNumberify(1000).add('250000187312969'))
+    }
 }
 /*
 
@@ -180,58 +351,8 @@ const overrides = {
   gasLimit: 9999999
 }
 
-describe('UniswapV2Pair', () => {
-  const provider = new MockProvider({
-    hardfork: 'istanbul',
-    mnemonic: 'horn horn horn horn horn horn horn horn horn horn horn horn',
-    gasLimit: 9999999
-  })
-  const [wallet, other] = provider.getWallets()
-  const loadFixture = createFixtureLoader(provider, [wallet])
 
-  let factory: Contract
-  let token0: Contract
-  let token1: Contract
-  let pair: Contract
-  beforeEach(async () => {
-    const fixture = await loadFixture(pairFixture)
-    factory = fixture.factory
-    token0 = fixture.token0
-    token1 = fixture.token1
-    pair = fixture.pair
-  })
 
-  it('mint', async () => {
-    const token0Amount = expandTo18Decimals(1)
-    const token1Amount = expandTo18Decimals(4)
-    await token0.transfer(pair.address, token0Amount)
-    await token1.transfer(pair.address, token1Amount)
-
-    const expectedLiquidity = expandTo18Decimals(2)
-    await expect(pair.mint(wallet.address, overrides))
-      .to.emit(pair, 'Transfer')
-      .withArgs(AddressZero, AddressZero, MINIMUM_LIQUIDITY)
-      .to.emit(pair, 'Transfer')
-      .withArgs(AddressZero, wallet.address, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
-      .to.emit(pair, 'Sync')
-      .withArgs(token0Amount, token1Amount)
-      .to.emit(pair, 'Mint')
-      .withArgs(wallet.address, token0Amount, token1Amount)
-
-    expect(await pair.totalSupply()).to.eq(expectedLiquidity)
-    expect(await pair.balanceOf(wallet.address)).to.eq(expectedLiquidity.sub(MINIMUM_LIQUIDITY))
-    expect(await token0.balanceOf(pair.address)).to.eq(token0Amount)
-    expect(await token1.balanceOf(pair.address)).to.eq(token1Amount)
-    const reserves = await pair.getReserves()
-    expect(reserves[0]).to.eq(token0Amount)
-    expect(reserves[1]).to.eq(token1Amount)
-  })
-
-  async function addLiquidity(token0Amount: BigNumber, token1Amount: BigNumber) {
-    await token0.transfer(pair.address, token0Amount)
-    await token1.transfer(pair.address, token1Amount)
-    await pair.mint(wallet.address, overrides)
-  }
   const swapTestCases: BigNumber[][] = [
     [1, 5, 10, '1662497915624478906'],
     [1, 10, 5, '453305446940074565'],
@@ -273,106 +394,7 @@ describe('UniswapV2Pair', () => {
     })
   })
 
-  it('swap:token0', async () => {
-    const token0Amount = expandTo18Decimals(5)
-    const token1Amount = expandTo18Decimals(10)
-    await addLiquidity(token0Amount, token1Amount)
 
-    const swapAmount = expandTo18Decimals(1)
-    const expectedOutputAmount = bigNumberify('1662497915624478906')
-    await token0.transfer(pair.address, swapAmount)
-    await expect(pair.swap(0, expectedOutputAmount, wallet.address, '0x', overrides))
-      .to.emit(token1, 'Transfer')
-      .withArgs(pair.address, wallet.address, expectedOutputAmount)
-      .to.emit(pair, 'Sync')
-      .withArgs(token0Amount.add(swapAmount), token1Amount.sub(expectedOutputAmount))
-      .to.emit(pair, 'Swap')
-      .withArgs(wallet.address, swapAmount, 0, 0, expectedOutputAmount, wallet.address)
-
-    const reserves = await pair.getReserves()
-    expect(reserves[0]).to.eq(token0Amount.add(swapAmount))
-    expect(reserves[1]).to.eq(token1Amount.sub(expectedOutputAmount))
-    expect(await token0.balanceOf(pair.address)).to.eq(token0Amount.add(swapAmount))
-    expect(await token1.balanceOf(pair.address)).to.eq(token1Amount.sub(expectedOutputAmount))
-    const totalSupplyToken0 = await token0.totalSupply()
-    const totalSupplyToken1 = await token1.totalSupply()
-    expect(await token0.balanceOf(wallet.address)).to.eq(totalSupplyToken0.sub(token0Amount).sub(swapAmount))
-    expect(await token1.balanceOf(wallet.address)).to.eq(totalSupplyToken1.sub(token1Amount).add(expectedOutputAmount))
-  })
-
-  it('swap:token1', async () => {
-    const token0Amount = expandTo18Decimals(5)
-    const token1Amount = expandTo18Decimals(10)
-    await addLiquidity(token0Amount, token1Amount)
-
-    const swapAmount = expandTo18Decimals(1)
-    const expectedOutputAmount = bigNumberify('453305446940074565')
-    await token1.transfer(pair.address, swapAmount)
-    await expect(pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides))
-      .to.emit(token0, 'Transfer')
-      .withArgs(pair.address, wallet.address, expectedOutputAmount)
-      .to.emit(pair, 'Sync')
-      .withArgs(token0Amount.sub(expectedOutputAmount), token1Amount.add(swapAmount))
-      .to.emit(pair, 'Swap')
-      .withArgs(wallet.address, 0, swapAmount, expectedOutputAmount, 0, wallet.address)
-
-    const reserves = await pair.getReserves()
-    expect(reserves[0]).to.eq(token0Amount.sub(expectedOutputAmount))
-    expect(reserves[1]).to.eq(token1Amount.add(swapAmount))
-    expect(await token0.balanceOf(pair.address)).to.eq(token0Amount.sub(expectedOutputAmount))
-    expect(await token1.balanceOf(pair.address)).to.eq(token1Amount.add(swapAmount))
-    const totalSupplyToken0 = await token0.totalSupply()
-    const totalSupplyToken1 = await token1.totalSupply()
-    expect(await token0.balanceOf(wallet.address)).to.eq(totalSupplyToken0.sub(token0Amount).add(expectedOutputAmount))
-    expect(await token1.balanceOf(wallet.address)).to.eq(totalSupplyToken1.sub(token1Amount).sub(swapAmount))
-  })
-
-  it('swap:gas', async () => {
-    const token0Amount = expandTo18Decimals(5)
-    const token1Amount = expandTo18Decimals(10)
-    await addLiquidity(token0Amount, token1Amount)
-
-    // ensure that setting price{0,1}CumulativeLast for the first time doesn't affect our gas math
-    await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
-    await pair.sync(overrides)
-
-    const swapAmount = expandTo18Decimals(1)
-    const expectedOutputAmount = bigNumberify('453305446940074565')
-    await token1.transfer(pair.address, swapAmount)
-    await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
-    const tx = await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
-    const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(73462)
-  })
-
-  it('burn', async () => {
-    const token0Amount = expandTo18Decimals(3)
-    const token1Amount = expandTo18Decimals(3)
-    await addLiquidity(token0Amount, token1Amount)
-
-    const expectedLiquidity = expandTo18Decimals(3)
-    await pair.transfer(pair.address, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
-    await expect(pair.burn(wallet.address, overrides))
-      .to.emit(pair, 'Transfer')
-      .withArgs(pair.address, AddressZero, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
-      .to.emit(token0, 'Transfer')
-      .withArgs(pair.address, wallet.address, token0Amount.sub(1000))
-      .to.emit(token1, 'Transfer')
-      .withArgs(pair.address, wallet.address, token1Amount.sub(1000))
-      .to.emit(pair, 'Sync')
-      .withArgs(1000, 1000)
-      .to.emit(pair, 'Burn')
-      .withArgs(wallet.address, token0Amount.sub(1000), token1Amount.sub(1000), wallet.address)
-
-    expect(await pair.balanceOf(wallet.address)).to.eq(0)
-    expect(await pair.totalSupply()).to.eq(MINIMUM_LIQUIDITY)
-    expect(await token0.balanceOf(pair.address)).to.eq(1000)
-    expect(await token1.balanceOf(pair.address)).to.eq(1000)
-    const totalSupplyToken0 = await token0.totalSupply()
-    const totalSupplyToken1 = await token1.totalSupply()
-    expect(await token0.balanceOf(wallet.address)).to.eq(totalSupplyToken0.sub(1000))
-    expect(await token1.balanceOf(wallet.address)).to.eq(totalSupplyToken1.sub(1000))
-  })
 
   it('price{0,1}CumulativeLast', async () => {
     const token0Amount = expandTo18Decimals(3)
@@ -407,44 +429,8 @@ describe('UniswapV2Pair', () => {
     expect((await pair.getReserves())[2]).to.eq(blockTimestamp + 20)
   })
 
-  it('feeTo:off', async () => {
-    const token0Amount = expandTo18Decimals(1000)
-    const token1Amount = expandTo18Decimals(1000)
-    await addLiquidity(token0Amount, token1Amount)
-
-    const swapAmount = expandTo18Decimals(1)
-    const expectedOutputAmount = bigNumberify('996006981039903216')
-    await token1.transfer(pair.address, swapAmount)
-    await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
-
-    const expectedLiquidity = expandTo18Decimals(1000)
-    await pair.transfer(pair.address, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
-    await pair.burn(wallet.address, overrides)
-    expect(await pair.totalSupply()).to.eq(MINIMUM_LIQUIDITY)
-  })
-
   it('feeTo:on', async () => {
-    await factory.setFeeTo(other.address)
-
-    const token0Amount = expandTo18Decimals(1000)
-    const token1Amount = expandTo18Decimals(1000)
-    await addLiquidity(token0Amount, token1Amount)
-
-    const swapAmount = expandTo18Decimals(1)
-    const expectedOutputAmount = bigNumberify('996006981039903216')
-    await token1.transfer(pair.address, swapAmount)
-    await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
-
-    const expectedLiquidity = expandTo18Decimals(1000)
-    await pair.transfer(pair.address, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
-    await pair.burn(wallet.address, overrides)
-    expect(await pair.totalSupply()).to.eq(MINIMUM_LIQUIDITY.add('249750499251388'))
-    expect(await pair.balanceOf(other.address)).to.eq('249750499251388')
-
-    // using 1000 here instead of the symbolic MINIMUM_LIQUIDITY because the amounts only happen to be equal...
-    // ...because the initial liquidity amounts were equal
-    expect(await token0.balanceOf(pair.address)).to.eq(bigNumberify(1000).add('249501683697445'))
-    expect(await token1.balanceOf(pair.address)).to.eq(bigNumberify(1000).add('250000187312969'))
+    
   })
 })
 */

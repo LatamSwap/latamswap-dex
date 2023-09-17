@@ -11,7 +11,6 @@ import {WETH} from "solmate/tokens/WETH.sol";
 import {ERC20} from "solady/tokens/ERC20.sol";
 import {Nativo} from "nativo/Nativo.sol";
 
-
 // Pair factory and Pair
 import {LatamswapFactory} from "src/Factory.sol";
 import {PairV2} from "src/PairV2.sol";
@@ -285,7 +284,9 @@ contract TestCore is Test {
                         abi.encodePacked(
                             "\x19\x01",
                             testStablePair.DOMAIN_SEPARATOR(),
-                            keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(testRouter02), liquidity, 0, block.timestamp))
+                            keccak256(
+                                abi.encode(PERMIT_TYPEHASH, owner, address(testRouter02), liquidity, 0, block.timestamp)
+                            )
                         )
                     )
                 );
@@ -313,7 +314,9 @@ contract TestCore is Test {
                         abi.encodePacked(
                             "\x19\x01",
                             testStablePair.DOMAIN_SEPARATOR(),
-                            keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(testRouter02), liquidity, 0, block.timestamp))
+                            keccak256(
+                                abi.encode(PERMIT_TYPEHASH, owner, address(testRouter02), liquidity, 0, block.timestamp)
+                            )
                         )
                     )
                 );
@@ -364,35 +367,37 @@ contract TestCore is Test {
             uint256 kBefore = reserveABefore * reserveBBefore;
 
             //if (approveMax) {
-                liquidity = type(uint256).max;
-                (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-                    privateKey,
-                    keccak256(
-                        abi.encodePacked(
-                            "\x19\x01",
-                            testStablePair.DOMAIN_SEPARATOR(),
-                            keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(testRouter02), liquidity, 0, block.timestamp + 1))
+            liquidity = type(uint256).max;
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+                privateKey,
+                keccak256(
+                    abi.encodePacked(
+                        "\x19\x01",
+                        testStablePair.DOMAIN_SEPARATOR(),
+                        keccak256(
+                            abi.encode(PERMIT_TYPEHASH, owner, address(testRouter02), liquidity, 0, block.timestamp + 1)
                         )
                     )
-                );
+                )
+            );
 
-                // ACTION:
-                try testRouter02.removeLiquidityETHWithPermit(
-                    address(usdc), liquidity, 0, 0, owner, MAX, /*approveMax*/ true, v, r, s
-                ) {
-                    // POSTCONDTION:
-                    (uint256 reserveAAfter, uint256 reserveBAfter,) = testWethPair.getReserves();
-                    (uint256 totalSupplyAfter) = testWethPair.totalSupply();
-                    (uint256 userBalAfter) = testWethPair.balanceOf(address(this));
-                    uint256 kAfter = reserveAAfter * reserveBAfter;
+            // ACTION:
+            try testRouter02.removeLiquidityETHWithPermit(
+                address(usdc), liquidity, 0, 0, owner, MAX, /*approveMax*/ true, v, r, s
+            ) {
+                // POSTCONDTION:
+                (uint256 reserveAAfter, uint256 reserveBAfter,) = testWethPair.getReserves();
+                (uint256 totalSupplyAfter) = testWethPair.totalSupply();
+                (uint256 userBalAfter) = testWethPair.balanceOf(address(this));
+                uint256 kAfter = reserveAAfter * reserveBAfter;
 
-                    assertLt(reserveAAfter, reserveABefore, "RESERVE TOKEN A CHECK");
-                    assertLt(reserveBAfter, reserveBBefore, "RESERVE TOKEN B CHECK");
-                    assertLt(kAfter, kBefore, "K CHECK");
-                    assertLt(totalSupplyAfter, totalSupplyBefore, "TOTAL SUPPLY CHECK");
-                    assertLt(userBalAfter, userBalBefore, "USER BAL CHECK");
-                } catch { /*assert(false)*/ } // overflow
-            /*
+                assertLt(reserveAAfter, reserveABefore, "RESERVE TOKEN A CHECK");
+                assertLt(reserveBAfter, reserveBBefore, "RESERVE TOKEN B CHECK");
+                assertLt(kAfter, kBefore, "K CHECK");
+                assertLt(totalSupplyAfter, totalSupplyBefore, "TOTAL SUPPLY CHECK");
+                assertLt(userBalAfter, userBalBefore, "USER BAL CHECK");
+            } catch { /*assert(false)*/ } // overflow
+                /*
             } else {
                 (uint8 v, bytes32 r, bytes32 s) = vm.sign(
                     privateKey,
@@ -404,7 +409,6 @@ contract TestCore is Test {
                         )
                     )
                 );
-
                 // ACTION:
                 try testRouter02.removeLiquidityETHWithPermit(
                     address(usdc), liquidity, 0, 0, owner, MAX, approveMax, v, r, s
@@ -414,7 +418,6 @@ contract TestCore is Test {
                     (uint256 totalSupplyAfter) = testWethPair.totalSupply();
                     (uint256 userBalAfter) = testWethPair.balanceOf(address(this));
                     uint256 kAfter = reserveAAfter * reserveBAfter;
-
                     assertLt(reserveAAfter, reserveABefore, "RESERVE TOKEN A CHECK");
                     assertLt(reserveBAfter, reserveBBefore, "RESERVE TOKEN B CHECK");
                     assertLt(kAfter, kBefore, "K CHECK");
@@ -473,9 +476,7 @@ contract TestCore is Test {
      * Decrease totalSupply
      * Decrease K
     */
-    function testFuzz_removeLiquidityETHWithPermitSupportingFeeOnTransferTokens(uint256 amount)
-        public
-    {
+    function testFuzz_removeLiquidityETHWithPermitSupportingFeeOnTransferTokens(uint256 amount) public {
         // PRECONDTION:
         amount = bound(amount, (10 ** 3), MAX);
 
