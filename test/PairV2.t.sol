@@ -269,6 +269,78 @@ contract PairV2Test is Test {
         assertEq(token0.balanceOf(address(pair)), 1000 + 249501683697445, "Expected liquidity not match");
         assertEq(token1.balanceOf(address(pair)), 1000 + 250000187312969, "Expected liquidity not match");
     }
+
+
+    function runSwapCase(uint256 swapAmount, uint256 token0Amount,uint256  token1Amount,uint256  expectedOutputAmount) internal {
+      addLiquidity(token0Amount, token1Amount);
+      token0.safeTransfer(address(pair), swapAmount);
+      vm.expectRevert();
+      pair.swap(0, expectedOutputAmount +1, address(this), "");
+      pair.swap(0, expectedOutputAmount, address(this), "");
+    }
+
+    function test_swap1() public {
+      runSwapCase(1 ether, 5 ether, 10 ether, 1662497915624478906);
+    }
+    function test_swap2() public {
+      runSwapCase(1 ether, 10 ether, 5 ether, 453305446940074565);
+    }
+    // [2, 5, 10, '2851015155847869602'],
+    function test_swap3() public {
+      runSwapCase(2 ether, 5 ether, 10 ether, 2851015155847869602);
+    }
+
+    // [2, 10, 5, '831248957812239453'],
+    function test_swap4() public {
+      runSwapCase(2 ether, 10 ether, 5 ether, 831248957812239453);
+    }
+  
+    // [2, 10, 5, '831248957812239453'],
+    function test_swap5() public {
+      runSwapCase(2 ether, 10 ether, 5 ether, 831248957812239453);
+    }
+    
+    // [2, 10, 5, '831248957812239453'],
+    function test_swap6() public {
+      runSwapCase(2 ether, 10 ether, 5 ether, 831248957812239453);
+    }
+
+    // [1, 10, 10, '906610893880149131'],
+    function test_swap7() public {
+      runSwapCase(1 ether, 10 ether, 10 ether, 906610893880149131);
+    }
+
+    // [1, 100, 100, '987158034397061298'],
+    function test_swap8() public {
+      runSwapCase(1 ether, 100 ether, 100 ether, 987158034397061298);
+    }
+
+    // [1, 1000, 1000, '996006981039903216']
+    function test_swap9() public {
+      runSwapCase(1 ether, 1000 ether, 1000 ether, 996006981039903216);
+    }
+
+    /*
+  
+    
+
+    
+    
+    
+  ].map(a => a.map(n => (typeof n === 'string' ? bigNumberify(n) : expandTo18Decimals(n))))
+  swapTestCases.forEach((swapTestCase, i) => {
+    it(`getInputPrice:${i}`, async () => {
+      const [swapAmount, token0Amount, token1Amount, expectedOutputAmount] = swapTestCase
+      await addLiquidity(token0Amount, token1Amount)
+      await token0.transfer(pair.address, swapAmount)
+      await expect(pair.swap(0, expectedOutputAmount.add(1), wallet.address, '0x', overrides)).to.be.revertedWith(
+        'UniswapV2: K'
+      )
+      await pair.swap(0, expectedOutputAmount, wallet.address, '0x', overrides)
+    })
+  })
+  */
+
 }
 /*
 
