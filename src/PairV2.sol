@@ -140,8 +140,8 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
 
         uint256 _totalSupply = totalSupply(); // gas savings, must be defined here since totalSupply can update in _mintFee
         _mintFee(_reserve0, _reserve1, _totalSupply);
-        amount0 = liquidity * (balance0) / _totalSupply; // using balances ensures pro-rata distribution
-        amount1 = liquidity * (balance1) / _totalSupply; // using balances ensures pro-rata distribution
+        amount0 = (liquidity * balance0) / _totalSupply; // using balances ensures pro-rata distribution
+        amount1 = (liquidity * balance1) / _totalSupply; // using balances ensures pro-rata distribution
         if (amount0 == 0 || amount1 == 0) revert ErrLatmaswapInsuffcientLiquidityBurned();
         _burn(address(this), liquidity);
         token0.safeTransfer(to, amount0);

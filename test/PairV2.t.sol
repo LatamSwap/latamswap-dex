@@ -238,66 +238,62 @@ contract PairV2Test is Test {
         assertEq(pair.totalSupply(), MINIMUM_LIQUIDITY);
         assertEq(token0.balanceOf(address(pair)), 1000);
         assertEq(token1.balanceOf(address(pair)), 1000);
-        
-    uint256 totalSupplyToken0 = MockERC20(token0).totalSupply();
-    uint256 totalSupplyToken1 =  MockERC20(token1).totalSupply();
 
-    assertEq(token0.balanceOf(address(this)), totalSupplyToken0 - 1000);
-    assertEq(token1.balanceOf(address(this)), totalSupplyToken1 - 1000);
-    
+        uint256 totalSupplyToken0 = MockERC20(token0).totalSupply();
+        uint256 totalSupplyToken1 = MockERC20(token1).totalSupply();
+
+        assertEq(token0.balanceOf(address(this)), totalSupplyToken0 - 1000);
+        assertEq(token1.balanceOf(address(this)), totalSupplyToken1 - 1000);
     }
 
     function test_Fees() public {
-      
-     uint256 token0Amount =1000 ether;
-    uint256 token1Amount =1000 ether;
-     addLiquidity(token0Amount, token1Amount);
+        uint256 token0Amount = 1000 ether;
+        uint256 token1Amount = 1000 ether;
+        addLiquidity(token0Amount, token1Amount);
 
-    uint256 swapAmount =1 ether;
-    uint256 expectedOutputAmount =996006981039903216;
-    token1.safeTransfer(address(pair), swapAmount);
-    pair.swap(expectedOutputAmount, 0, address(this), "");
+        uint256 swapAmount = 1 ether;
+        uint256 expectedOutputAmount = 996006981039903216;
+        token1.safeTransfer(address(pair), swapAmount);
+        pair.swap(expectedOutputAmount, 0, address(this), "");
 
-    uint256 expectedLiquidity =1000 ether;
-    pair.transfer(address(pair), expectedLiquidity - MINIMUM_LIQUIDITY);
-    pair.burn(address(this));
-    
-    assertEq(pair.totalSupply(), MINIMUM_LIQUIDITY + 249750499251388);
+        uint256 expectedLiquidity = 1000 ether;
+        pair.transfer(address(pair), expectedLiquidity - MINIMUM_LIQUIDITY);
+        pair.burn(address(this));
 
-    assertEq(pair.balanceOf(address(factory)), 249750499251388, "Expected factory fee not match");
+        assertEq(pair.totalSupply(), MINIMUM_LIQUIDITY + 249750499251388);
 
-    // using 1000 here instead of the symbolic MINIMUM_LIQUIDITY because the amounts only happen to be equal...
-    // ...because the initial liquidity amounts were equal
-    assertEq(token0.balanceOf(address(pair)), 1000 + 249501683697445, "Expected liquidity not match");
-    //expect(await token1.balanceOf(pair.address)).to.eq(bigNumberify(1000).add('250000187312969'))
+        assertEq(pair.balanceOf(address(factory)), 249750499251388, "Expected factory fee not match");
+
+        // using 1000 here instead of the symbolic MINIMUM_LIQUIDITY because the amounts only happen to be equal...
+        // ...because the initial liquidity amounts were equal
+        assertEq(token0.balanceOf(address(pair)), 1000 + 249501683697445, "Expected liquidity not match");
+        //expect(await token1.balanceOf(pair.address)).to.eq(bigNumberify(1000).add('250000187312969'))
     }
 
-
     function test_Fees2() public {
-      
-     uint256 token0Amount =1000 ether;
-    uint256 token1Amount =1000 ether;
-      MockERC20(unitoken0).transfer(address(uniPair), token0Amount);
+        uint256 token0Amount = 1000 ether;
+        uint256 token1Amount = 1000 ether;
+        MockERC20(unitoken0).transfer(address(uniPair), token0Amount);
         MockERC20(unitoken1).transfer(address(uniPair), token1Amount);
         uniPair.mint(address(this));
 
-    uint256 swapAmount =1 ether;
-    uint256 expectedOutputAmount =996006981039903216;
-    unitoken1.safeTransfer(address(uniPair), swapAmount);
-    uniPair.swap(expectedOutputAmount, 0, address(this), "");
+        uint256 swapAmount = 1 ether;
+        uint256 expectedOutputAmount = 996006981039903216;
+        unitoken1.safeTransfer(address(uniPair), swapAmount);
+        uniPair.swap(expectedOutputAmount, 0, address(this), "");
 
-    uint256 expectedLiquidity =1000 ether;
-    uniPair.transfer(address(uniPair), expectedLiquidity - MINIMUM_LIQUIDITY);
-    uniPair.burn(address(this));
-    
-    assertEq(uniPair.totalSupply(), MINIMUM_LIQUIDITY + 249750499251388);
+        uint256 expectedLiquidity = 1000 ether;
+        uniPair.transfer(address(uniPair), expectedLiquidity - MINIMUM_LIQUIDITY);
+        uniPair.burn(address(this));
 
-    assertEq(uniPair.balanceOf(address(factory)), 249750499251388, "Expected factory fee not match");
+        assertEq(uniPair.totalSupply(), MINIMUM_LIQUIDITY + 249750499251388);
 
-    // using 1000 here instead of the symbolic MINIMUM_LIQUIDITY because the amounts only happen to be equal...
-    // ...because the initial liquidity amounts were equal
-    assertEq(token0.balanceOf(address(pair)), 1000 + 249501683697445, "Expected liquidity not match");
-    //expect(await token1.balanceOf(pair.address)).to.eq(bigNumberify(1000).add('250000187312969'))
+        assertEq(uniPair.balanceOf(makeAddr("uni")), 249750499251388, "Expected factory fee not match");
+
+        // using 1000 here instead of the symbolic MINIMUM_LIQUIDITY because the amounts only happen to be equal...
+        // ...because the initial liquidity amounts were equal
+        assertEq(unitoken0.balanceOf(address(uniPair)), 1000 + 249501683697445, "Expected liquidity not match");
+        assertEq(unitoken1.balanceOf(address(uniPair)), 1000 + 250000187312969, "Expected liquidity not match");
     }
 }
 /*
