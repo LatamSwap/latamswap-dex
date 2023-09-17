@@ -168,6 +168,9 @@ abstract contract BasePairTest is Test, Benchmark {
         assertEq(pair.balanceOf(address(this)), l1);
         assertEq(pair.balanceOf(address(user)), l2);
         assertEq(pair.totalSupply(), l1 + l2 + pair.MINIMUM_LIQUIDITY());
+
+        vm.expectRevert();
+        user.addLiquidity(address(pair), address(token0), address(token1), 0, 0);
     }
 
     function testBurn() public {
@@ -247,7 +250,6 @@ abstract contract BasePairTest is Test, Benchmark {
         */
     }
 
-    /*
     function testBurnUnbalancedMultipleUsers() public {
         token0.transfer(address(pair), 1 ether);
         token1.transfer(address(pair), 1 ether);
@@ -265,13 +267,13 @@ abstract contract BasePairTest is Test, Benchmark {
         assertEq(pair.totalSupply(), pair.MINIMUM_LIQUIDITY());
 
         // second user penalised for unbalanced liquidity, hence reserves unbalanced
-        assertPairReserves(pair.MINIMUM_LIQUIDITY(), 1 ether + pair.MINIMUM_LIQUIDITY());
+        assertPairReserves(pair.MINIMUM_LIQUIDITY(), 1334);
+
         assertEq(token0.balanceOf(address(this)), 10 ether - 1 ether + a10);
         assertEq(token1.balanceOf(address(this)), 10 ether - 1 ether + a11);
         assertEq(token0.balanceOf(address(user)), 10 ether - 2 ether + a00);
         assertEq(token1.balanceOf(address(user)), 10 ether - 3 ether + a01);
     }
-    */
 
     function testSwapFee() public {
         token0.transfer(address(pair), 1 ether);

@@ -7,12 +7,12 @@ import {PairV2Library} from "./PairV2Library.sol";
 import {PairV2} from "./PairV2.sol";
 import {INativo} from "nativo/INativo.sol";
 
-contract UniswapV2Router02 is IUniswapV2Router02 {
+contract LatamswapV2Router02 is IUniswapV2Router02 {
     using SafeTransferLib for address;
 
     address public immutable factory;
-    address public immutable WETH;
     address public immutable NATIVO;
+    address public immutable WETH;
 
     modifier ensure(uint256 deadline) {
         if (deadline < block.timestamp) {
@@ -21,10 +21,10 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         _;
     }
 
-    constructor(address _factory, address _WETH, address _NATIVO) public {
+    constructor(address _factory, address _nativo) {
         factory = _factory;
-        WETH = _WETH;
-        NATIVO = _NATIVO;
+        NATIVO = _nativo;
+        WETH = _nativo;
     }
 
     // **** ADD LIQUIDITY ****

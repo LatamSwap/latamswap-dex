@@ -5,10 +5,7 @@ import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {UQ112x112} from "./utils/UQ112x112.sol";
 import {ReentrancyGuard} from "./utils/ReentrancyGuard.sol";
-
 import {IUniswapV2Callee} from "v2-core/interfaces/IUniswapV2Callee.sol";
-import {IUniswapV2Factory} from "v2-core/interfaces/IUniswapV2Factory.sol";
-
 import {ERC20} from "solady/tokens/ERC20.sol";
 import {ERC1363} from "./ERC1363.sol";
 
@@ -21,7 +18,6 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
     address public immutable factory;
     address public immutable token0;
     address public immutable token1;
-    address public immutable feeTo;
 
     uint112 private reserve0; // uses single storage slot, accessible via getReserves
     uint112 private reserve1; // uses single storage slot, accessible via getReserves
@@ -58,17 +54,24 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
     event Sync(uint112 reserve0, uint112 reserve1);
 
     error ErrLatamswapWrongK();
+    error ErrLatamswapOverflow();
+    error ErrLatamswapInsufficientLiquidity();
+    error ErrLatmaswapInsuffcientLiquidityBurned();
+    error ErrLatamswapInsufficientOutputAmount();
+    error ErrLatamswapInvalidTo();
+    error ErrLatamswapInsufficientInputAmount();
 
     constructor(address _token0, address _token1) {
         factory = msg.sender;
-        feeTo = IUniswapV2Factory(factory).feeTo();
         token0 = _token0;
         token1 = _token1;
     }
 
     // update reserves and, on the first call per block, price accumulators
     function _update(uint256 balance0, uint256 balance1, uint112 _reserve0, uint112 _reserve1) private {
-        require(balance0 <= type(uint112).max && balance1 <= type(uint112).max, "UniswapV2: OVERFLOW");
+        if (balance0 > type(uint112).max || balance1 > type(uint112).max) {
+            revert ErrLatamswapOverflow();
+        }
 
         unchecked {
             uint32 timeElapsed = uint32(block.timestamp - blockTimestampLast); // overflow is desired
@@ -86,7 +89,7 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         emit Sync(reserve0, reserve1);
     }
 
-    // if fee is always on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
+    // fee is always on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
     function _mintFee(uint112 _reserve0, uint112 _reserve1, uint256 _totalSupply) private {
         uint256 _kLast = kLast; // gas savings
         if (_kLast != 0) {
@@ -96,7 +99,7 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
                 uint256 numerator = _totalSupply * (rootK - rootKLast);
                 uint256 denominator = rootK * 5 + rootKLast;
                 uint256 liquidity = numerator / denominator;
-                if (liquidity > 0) _mint(feeTo, liquidity);
+                if (liquidity > 0) _mint(factory, liquidity);
             }
         }
     }
@@ -118,7 +121,9 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
             liquidity =
                 FixedPointMathLib.min(amount0 * (_totalSupply) / _reserve0, amount1 * (_totalSupply) / _reserve1);
         }
-        require(liquidity > 0, "UniswapV2: INSUFFICIENT_LIQUIDITY_MINTED");
+
+        if (liquidity == 0) revert ErrLatamswapInsufficientLiquidity();
+
         _mint(to, liquidity);
 
         _update(balance0, balance1, _reserve0, _reserve1);
@@ -137,7 +142,7 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         _mintFee(_reserve0, _reserve1, _totalSupply);
         amount0 = liquidity * (balance0) / _totalSupply; // using balances ensures pro-rata distribution
         amount1 = liquidity * (balance1) / _totalSupply; // using balances ensures pro-rata distribution
-        require(amount0 > 0 && amount1 > 0, "UniswapV2: INSUFFICIENT_LIQUIDITY_BURNED");
+        if (amount0 == 0 || amount1 == 0) revert ErrLatmaswapInsuffcientLiquidityBurned();
         _burn(address(this), liquidity);
         token0.safeTransfer(to, amount0);
         token1.safeTransfer(to, amount1);
@@ -151,11 +156,11 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
 
     // this low-level function should be called from a contract which performs important safety checks
     function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
-        require(amount0Out > 0 || amount1Out > 0, "UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT");
+        if (amount0Out == 0 && amount1Out == 0) revert ErrLatamswapInsufficientOutputAmount();
         (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
-        require(amount0Out < _reserve0 && amount1Out < _reserve1, "UniswapV2: INSUFFICIENT_LIQUIDITY");
+        if (amount0Out >= _reserve0 || amount1Out >= _reserve1) revert ErrLatamswapInsufficientLiquidity();
 
-        require(to != token0 && to != token1, "UniswapV2: INVALID_TO");
+        if (to == token0 || to == token1) revert ErrLatamswapInvalidTo();
         if (amount0Out > 0) token0.safeTransfer(to, amount0Out); // optimistically transfer tokens
         if (amount1Out > 0) token1.safeTransfer(to, amount1Out); // optimistically transfer tokens
         if (data.length > 0) IUniswapV2Callee(to).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
@@ -172,7 +177,7 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
             amount1In = balance1 > aux ? balance1 - aux : 0;
         }
 
-        require(amount0In > 0 || amount1In > 0, "UniswapV2: INSUFFICIENT_INPUT_AMOUNT");
+        if (amount0In == 0 && amount1In == 0) revert ErrLatamswapInsufficientInputAmount();
         {
             // scope for reserve{0,1}Adjusted, avoids stack too deep errors
             uint256 balance0Adjusted = balance0 * 1_000 - (amount0In * 3);
@@ -189,8 +194,8 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
 
     // force balances to match reserves
     function skim(address to) external nonReentrant {
-        token0.safeTransfer(to, token0.balanceOf(address(this)) - (reserve0));
-        token1.safeTransfer(to, token1.balanceOf(address(this)) - (reserve1));
+        token0.safeTransfer(to, token0.balanceOf(address(this)) - reserve0);
+        token1.safeTransfer(to, token1.balanceOf(address(this)) - reserve1);
     }
 
     // force reserves to match balances
