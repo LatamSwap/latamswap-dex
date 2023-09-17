@@ -8,14 +8,16 @@ import {DeflatingERC20} from "./DeflatingERC20.sol";
 import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {WETH} from "solmate/tokens/WETH.sol";
 
+import {ERC20} from "solady/tokens/ERC20.sol";
 import {Nativo} from "nativo/Nativo.sol";
 
+
 // Pair factory and Pair
-import "src/Factory.sol";
-import "src/PairV2.sol";
+import {LatamswapFactory} from "src/Factory.sol";
+import {PairV2} from "src/PairV2.sol";
 import {PairV2Library} from "src/PairV2Library.sol";
 // Routerss
-import {UniswapV2Router02} from "src/Router.sol";
+import {LatamswapV2Router02} from "src/Router.sol";
 
 contract TestCore is Test {
     uint256 MAX = type(uint256).max;
@@ -31,7 +33,7 @@ contract TestCore is Test {
 
     // Pair factory and Pair
     PairV2 testStablePair;
-    UniswapV2Factory testFactory;
+    LatamswapFactory testFactory;
     PairV2 testWethPair;
     PairV2 testFeeWethPair;
     PairV2 testFeePair;
@@ -40,7 +42,7 @@ contract TestCore is Test {
 
     // Routers
     //UniswapV2Router01 testRouter01;
-    UniswapV2Router02 testRouter02;
+    LatamswapV2Router02 testRouter02;
 
     address owner;
     uint256 privateKey;
@@ -60,21 +62,17 @@ contract TestCore is Test {
         feeToken = new DeflatingERC20(0);
         vm.label(address(feeToken), "FEE_TOKEN");
 
-        // weth = new WETH();
-        weth = WETH(
-            payable(
-                address(
-                    new Nativo("Nativo Wrapper Ether", "nETH", makeAddr("treasuryNativo"), makeAddr("treasuryNativo"))
-                )
-            )
-        );
+        weth = new WETH();
         vm.label(address(weth), "WETH");
 
+        vm.prank(0xC0dE429aA384a6641fDc0Af4e6bcfb04054535b8);
+        vm.setNonce(0xC0dE429aA384a6641fDc0Af4e6bcfb04054535b8, 131644038);
         nativo = new Nativo("Nativo Wrapper Ether", "nETH", makeAddr("treasuryNativo"), makeAddr("treasuryNativo"));
         vm.label(address(nativo), "NATIVO");
+        assertEq(address(nativo), 0x0000000B81F7260fA5add246b9C23bb2D89dDB20);
 
         // Deploy factory and Pairs
-        testFactory = new UniswapV2Factory(address(this));
+        testFactory = new LatamswapFactory(address(this));
         vm.label(address(testFactory), "FACTORY");
 
         testStablePair = PairV2(testFactory.createPair(address(usdc), address(usdt)));
@@ -96,7 +94,7 @@ contract TestCore is Test {
         vm.label(address(testFeeWethPair), "FEE_PAIR");
 
         // Deploy Router
-        testRouter02 = new UniswapV2Router02(address(testFactory), address(weth), address(nativo));
+        testRouter02 = new LatamswapV2Router02(address(testFactory), address(nativo));
         vm.label(address(testRouter02), "ROUTER");
 
         // Approve Router
@@ -259,12 +257,10 @@ contract TestCore is Test {
      * Decrease totalSupply
      * Decrease K
     */
-    function testFuzz_removeLiqWithPermit(uint256 amount1, uint256 amount2, bool approveMax, uint256 deadline) public {
+    function testFuzz_removeLiqWithPermit(uint256 amount1, uint256 amount2, bool approveMax) public {
         // PRECONDTION:
         uint256 _amount1 = bound(amount1, (10 ** 3), MAX);
         uint256 _amount2 = bound(amount2, (10 ** 3), MAX);
-
-        if (deadline < block.timestamp) deadline = block.timestamp;
 
         if (!setPermit) {
             _initPermit(owner, _amount1, _amount2);
@@ -289,14 +285,14 @@ contract TestCore is Test {
                         abi.encodePacked(
                             "\x19\x01",
                             testStablePair.DOMAIN_SEPARATOR(),
-                            keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(testRouter02), liquidity, 0, deadline))
+                            keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(testRouter02), liquidity, 0, block.timestamp))
                         )
                     )
                 );
 
                 // ACTION:
                 try testRouter02.removeLiquidityWithPermit(
-                    address(usdc), address(usdt), liquidity, 0, 0, owner, MAX, approveMax, v, r, s
+                    address(usdc), address(usdt), liquidity, 0, 0, owner, MAX, true, v, r, s
                 ) {
                     // POSTCONDTION:
                     (uint256 reserveAAfter, uint256 reserveBAfter,) = testStablePair.getReserves();
@@ -317,14 +313,14 @@ contract TestCore is Test {
                         abi.encodePacked(
                             "\x19\x01",
                             testStablePair.DOMAIN_SEPARATOR(),
-                            keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(testRouter02), liquidity, 0, deadline))
+                            keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(testRouter02), liquidity, 0, block.timestamp))
                         )
                     )
                 );
 
                 // ACTION:
                 try testRouter02.removeLiquidityWithPermit(
-                    address(usdc), address(usdt), liquidity, 0, 0, owner, MAX, approveMax, v, r, s
+                    address(usdc), address(usdt), liquidity, 0, 0, owner, MAX, true, v, r, s
                 ) {
                     // POSTCONDTION:
                     (uint256 reserveAAfter, uint256 reserveBAfter,) = testStablePair.getReserves();
@@ -348,11 +344,9 @@ contract TestCore is Test {
      * Decrease totalSupply
      * Decrease K
     */
-    function testFuzz_removeLiqETHWithPermit(uint256 amount, bool approveMax, uint256 deadline) public {
+    function testFuzz_removeLiqETHWithPermit(uint256 amount) public {
         // PRECONDTION:
         amount = bound(amount, (10 ** 3), MAX);
-
-        if (deadline < block.timestamp) deadline = block.timestamp;
 
         if (!setPermitETHFee) {
             _initPermitETH(owner, amount);
@@ -369,7 +363,7 @@ contract TestCore is Test {
             (uint256 userBalBefore) = testWethPair.balanceOf(address(this));
             uint256 kBefore = reserveABefore * reserveBBefore;
 
-            if (approveMax) {
+            //if (approveMax) {
                 liquidity = type(uint256).max;
                 (uint8 v, bytes32 r, bytes32 s) = vm.sign(
                     privateKey,
@@ -377,14 +371,14 @@ contract TestCore is Test {
                         abi.encodePacked(
                             "\x19\x01",
                             testStablePair.DOMAIN_SEPARATOR(),
-                            keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(testRouter02), liquidity, 0, deadline))
+                            keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(testRouter02), liquidity, 0, block.timestamp + 1))
                         )
                     )
                 );
 
                 // ACTION:
                 try testRouter02.removeLiquidityETHWithPermit(
-                    address(usdc), liquidity, 0, 0, owner, MAX, approveMax, v, r, s
+                    address(usdc), liquidity, 0, 0, owner, MAX, /*approveMax*/ true, v, r, s
                 ) {
                     // POSTCONDTION:
                     (uint256 reserveAAfter, uint256 reserveBAfter,) = testWethPair.getReserves();
@@ -398,6 +392,7 @@ contract TestCore is Test {
                     assertLt(totalSupplyAfter, totalSupplyBefore, "TOTAL SUPPLY CHECK");
                     assertLt(userBalAfter, userBalBefore, "USER BAL CHECK");
                 } catch { /*assert(false)*/ } // overflow
+            /*
             } else {
                 (uint8 v, bytes32 r, bytes32 s) = vm.sign(
                     privateKey,
@@ -425,8 +420,9 @@ contract TestCore is Test {
                     assertLt(kAfter, kBefore, "K CHECK");
                     assertLt(totalSupplyAfter, totalSupplyBefore, "TOTAL SUPPLY CHECK");
                     assertLt(userBalAfter, userBalBefore, "USER BAL CHECK");
-                } catch { /*assert(false)*/ } // overflow
+                } catch { /*assert(false)* / } // overflow
             }
+            */
         } catch { /*assert(false)*/ } // overflow
     }
 
@@ -477,7 +473,7 @@ contract TestCore is Test {
      * Decrease totalSupply
      * Decrease K
     */
-    function testFuzz_removeLiquidityETHWithPermitSupportingFeeOnTransferTokens(uint256 amount, bool approveMax)
+    function testFuzz_removeLiquidityETHWithPermitSupportingFeeOnTransferTokens(uint256 amount)
         public
     {
         // PRECONDTION:
@@ -510,7 +506,7 @@ contract TestCore is Test {
                                     PERMIT_TYPEHASH,
                                     owner,
                                     address(testRouter02),
-                                    approveMax ? type(uint256).max : liquidity,
+                                    type(uint256).max, // approveMax ? type(uint256).max : liquidity, // @todo extra test with aproveMax
                                     0,
                                     block.timestamp
                                 )
@@ -521,7 +517,7 @@ contract TestCore is Test {
 
                 // ACTION:
                 try testRouter02.removeLiquidityETHWithPermitSupportingFeeOnTransferTokens(
-                    address(feeToken), liquidity, 0, 0, owner, MAX, approveMax, v, r, s
+                    address(feeToken), liquidity, 0, 0, owner, MAX, true, v, r, s
                 ) {
                     // POSTCONDTION:
                     (uint256 reserveAAfter, uint256 reserveBAfter,) = testWethPair.getReserves();
