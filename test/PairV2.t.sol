@@ -270,6 +270,57 @@ contract PairV2Test is Test {
         assertEq(token1.balanceOf(address(pair)), 1000 + 250000187312969, "Expected liquidity not match");
     }
 
+    function encodePrice(uint256 reserve0, uint256 reserve1) internal returns(uint256 a, uint256 b) {
+      a = reserve1*(2**112) / reserve0;
+      b = reserve0*(2**112) / reserve1;
+    }
+
+function test_CumulativePrice() public {
+
+    uint256 token0Amount = 3 ether;
+    uint256 token1Amount = 3 ether;
+    addLiquidity(token0Amount, token1Amount);
+
+    (,,uint256 blockTimestamp) = pair.getReserves();
+    vm.roll(block.number+1);
+    vm.warp(block.timestamp +1);
+    pair.sync();
+
+    (uint256 initialPrice0, uint256 initialPrice1) = encodePrice(token0Amount, token1Amount);
+      
+    assertEq(pair.price0CumulativeLast(),initialPrice0);
+    assertEq(pair.price1CumulativeLast(),initialPrice1);
+
+    (,,uint256 blockTimestamp2) = pair.getReserves();
+    assertEq(blockTimestamp2, blockTimestamp +1);
+
+    uint256 swapAmount = 3 ether;
+    token0.safeTransfer(address(pair), swapAmount);
+    vm.roll(block.number+1);
+    vm.warp(block.timestamp +9);
+    
+    // swap to a new price eagerly instead of syncing
+    pair.swap(0, 1 ether, address(this), ""); // make the price nice
+
+    assertEq(pair.price0CumulativeLast(),initialPrice0*10);
+    assertEq(pair.price1CumulativeLast(),initialPrice1*10);
+    (,, blockTimestamp2) = pair.getReserves();
+    assertEq(blockTimestamp2, blockTimestamp +10);
+
+
+    vm.roll(block.number+1);
+    vm.warp(block.timestamp +20);
+    pair.sync();
+    /*
+
+    const newPrice = encodePrice(expandTo18Decimals(6), expandTo18Decimals(2))
+    expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0].mul(10).add(newPrice[0].mul(10)))
+    expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1].mul(10).add(newPrice[1].mul(10)))
+    expect((await pair.getReserves())[2]).to.eq(blockTimestamp + 20)
+  })
+  */
+}
+
 
     function runSwapCase(uint256 swapAmount, uint256 token0Amount,uint256  token1Amount,uint256  expectedOutputAmount) internal {
       addLiquidity(token0Amount, token1Amount);
@@ -438,41 +489,5 @@ const overrides = {
 
 
 
-  it('price{0,1}CumulativeLast', async () => {
-    const token0Amount = expandTo18Decimals(3)
-    const token1Amount = expandTo18Decimals(3)
-    await addLiquidity(token0Amount, token1Amount)
-
-    const blockTimestamp = (await pair.getReserves())[2]
-    await mineBlock(provider, blockTimestamp + 1)
-    await pair.sync(overrides)
-
-    const initialPrice = encodePrice(token0Amount, token1Amount)
-    expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0])
-    expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1])
-    expect((await pair.getReserves())[2]).to.eq(blockTimestamp + 1)
-
-    const swapAmount = expandTo18Decimals(3)
-    await token0.transfer(pair.address, swapAmount)
-    await mineBlock(provider, blockTimestamp + 10)
-    // swap to a new price eagerly instead of syncing
-    await pair.swap(0, expandTo18Decimals(1), wallet.address, '0x', overrides) // make the price nice
-
-    expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0].mul(10))
-    expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1].mul(10))
-    expect((await pair.getReserves())[2]).to.eq(blockTimestamp + 10)
-
-    await mineBlock(provider, blockTimestamp + 20)
-    await pair.sync(overrides)
-
-    const newPrice = encodePrice(expandTo18Decimals(6), expandTo18Decimals(2))
-    expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0].mul(10).add(newPrice[0].mul(10)))
-    expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1].mul(10).add(newPrice[1].mul(10)))
-    expect((await pair.getReserves())[2]).to.eq(blockTimestamp + 20)
-  })
-
-  it('feeTo:on', async () => {
-    
-  })
 })
 */
