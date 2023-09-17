@@ -90,13 +90,13 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
     }
 
     // fee is always on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
-    function _mintFee(uint112 _reserve0, uint112 _reserve1, uint256 _totalSupply) private {
+    function _mintFee(uint112 _reserve0, uint112 _reserve1) private {
         uint256 _kLast = kLast; // gas savings
         if (_kLast != 0) {
             uint256 rootK = FixedPointMathLib.sqrt(uint256(_reserve0) * uint256(_reserve1));
             uint256 rootKLast = FixedPointMathLib.sqrt(_kLast);
             if (rootK > rootKLast) {
-                uint256 numerator = _totalSupply * (rootK - rootKLast);
+                uint256 numerator = totalSupply() * (rootK - rootKLast);
                 uint256 denominator = rootK * 5 + rootKLast;
                 uint256 liquidity = numerator / denominator;
                 if (liquidity > 0) _mint(factory, liquidity);
@@ -112,8 +112,8 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         uint256 amount0 = balance0 - _reserve0;
         uint256 amount1 = balance1 - _reserve1;
 
+        _mintFee(_reserve0, _reserve1);
         uint256 _totalSupply = totalSupply(); // gas savings, must be defined here since totalSupply can update in _mintFee
-        _mintFee(_reserve0, _reserve1, _totalSupply);
         if (_totalSupply == 0) {
             liquidity = FixedPointMathLib.sqrt(amount0 * (amount1)) - (MINIMUM_LIQUIDITY);
             _mint(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
@@ -133,15 +133,16 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
 
     // this low-level function should be called from a contract which performs important safety checks
     function burn(address to) external nonReentrant returns (uint256 amount0, uint256 amount1) {
-        (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
-        uint256 balance0 = token0.balanceOf(address(this));
-        uint256 balance1 = token1.balanceOf(address(this));
-        uint256 liquidity = balanceOf(address(this));
 
+         (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
+        uint balance0 = token0.balanceOf(address(this));
+        uint balance1 = token1.balanceOf(address(this));
+        uint liquidity = balanceOf(address(this));
+
+        _mintFee(_reserve0, _reserve1);
         uint256 _totalSupply = totalSupply(); // gas savings, must be defined here since totalSupply can update in _mintFee
-        _mintFee(_reserve0, _reserve1, _totalSupply);
-        amount0 = (liquidity * balance0) / _totalSupply; // using balances ensures pro-rata distribution
-        amount1 = (liquidity * balance1) / _totalSupply; // using balances ensures pro-rata distribution
+        amount0 = liquidity * balance0 / _totalSupply; // using balances ensures pro-rata distribution
+        amount1 = liquidity * balance1 / _totalSupply; // using balances ensures pro-rata distribution
         if (amount0 == 0 || amount1 == 0) revert ErrLatmaswapInsuffcientLiquidityBurned();
         _burn(address(this), liquidity);
         token0.safeTransfer(to, amount0);
@@ -150,7 +151,7 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         balance1 = token1.balanceOf(address(this));
 
         _update(balance0, balance1, _reserve0, _reserve1);
-        kLast = uint256(reserve0) * (reserve1); // reserve0 and reserve1 are up-to-date
+        kLast = uint256(reserve0) * uint256(reserve1); // reserve0 and reserve1 are up-to-date
         emit Burn(msg.sender, amount0, amount1, to);
     }
 
