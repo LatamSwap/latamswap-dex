@@ -13,7 +13,8 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
     using SafeTransferLib for address;
     using UQ112x112 for uint224;
 
-    uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
+    // 10 ** 3 = 1e3 = 1000
+    uint256 public constant MINIMUM_LIQUIDITY = 1e3;
 
     address public immutable factory;
     address public immutable token0;
@@ -133,11 +134,10 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
 
     // this low-level function should be called from a contract which performs important safety checks
     function burn(address to) external nonReentrant returns (uint256 amount0, uint256 amount1) {
-
-         (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
-        uint balance0 = token0.balanceOf(address(this));
-        uint balance1 = token1.balanceOf(address(this));
-        uint liquidity = balanceOf(address(this));
+        (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
+        uint256 balance0 = token0.balanceOf(address(this));
+        uint256 balance1 = token1.balanceOf(address(this));
+        uint256 liquidity = balanceOf(address(this));
 
         _mintFee(_reserve0, _reserve1);
         uint256 _totalSupply = totalSupply(); // gas savings, must be defined here since totalSupply can update in _mintFee

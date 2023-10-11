@@ -270,116 +270,117 @@ contract PairV2Test is Test {
         assertEq(token1.balanceOf(address(pair)), 1000 + 250000187312969, "Expected liquidity not match");
     }
 
-    function encodePrice(uint256 reserve0, uint256 reserve1) internal returns(uint256 a, uint256 b) {
-      a = reserve1*(2**112) / reserve0;
-      b = reserve0*(2**112) / reserve1;
+    function encodePrice(uint256 reserve0, uint256 reserve1) internal returns (uint256 a, uint256 b) {
+        a = reserve1 * (2 ** 112) / reserve0;
+        b = reserve0 * (2 ** 112) / reserve1;
     }
 
-function test_CumulativePrice() public {
+    function test_CumulativePrice() public {
+        uint256 token0Amount = 3 ether;
+        uint256 token1Amount = 3 ether;
+        addLiquidity(token0Amount, token1Amount);
 
-    uint256 token0Amount = 3 ether;
-    uint256 token1Amount = 3 ether;
-    addLiquidity(token0Amount, token1Amount);
+        (,, uint256 blockTimestamp) = pair.getReserves();
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 1);
+        pair.sync();
 
-    (,,uint256 blockTimestamp) = pair.getReserves();
-    vm.roll(block.number+1);
-    vm.warp(block.timestamp +1);
-    pair.sync();
+        (uint256 initialPrice0, uint256 initialPrice1) = encodePrice(token0Amount, token1Amount);
 
-    (uint256 initialPrice0, uint256 initialPrice1) = encodePrice(token0Amount, token1Amount);
-      
-    assertEq(pair.price0CumulativeLast(),initialPrice0);
-    assertEq(pair.price1CumulativeLast(),initialPrice1);
+        assertEq(pair.price0CumulativeLast(), initialPrice0);
+        assertEq(pair.price1CumulativeLast(), initialPrice1);
 
-    (,,uint256 blockTimestamp2) = pair.getReserves();
-    assertEq(blockTimestamp2, blockTimestamp +1);
+        (,, uint256 blockTimestamp2) = pair.getReserves();
+        assertEq(blockTimestamp2, blockTimestamp + 1);
 
-    uint256 swapAmount = 3 ether;
-    token0.safeTransfer(address(pair), swapAmount);
-    vm.roll(block.number+1);
-    vm.warp(block.timestamp +9);
-    
-    // swap to a new price eagerly instead of syncing
-    pair.swap(0, 1 ether, address(this), ""); // make the price nice
+        uint256 swapAmount = 3 ether;
+        token0.safeTransfer(address(pair), swapAmount);
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 9);
 
-    assertEq(pair.price0CumulativeLast(),initialPrice0*10);
-    assertEq(pair.price1CumulativeLast(),initialPrice1*10);
-    (,, blockTimestamp2) = pair.getReserves();
-    assertEq(blockTimestamp2, blockTimestamp +10);
+        // swap to a new price eagerly instead of syncing
+        pair.swap(0, 1 ether, address(this), ""); // make the price nice
 
+        assertEq(pair.price0CumulativeLast(), initialPrice0 * 10);
+        assertEq(pair.price1CumulativeLast(), initialPrice1 * 10);
+        (,, blockTimestamp2) = pair.getReserves();
+        assertEq(blockTimestamp2, blockTimestamp + 10);
 
-    vm.roll(block.number+1);
-    vm.warp(block.timestamp +20);
-    pair.sync();
-    /*
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 20);
+        pair.sync();
+        /*
 
     const newPrice = encodePrice(expandTo18Decimals(6), expandTo18Decimals(2))
     expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0].mul(10).add(newPrice[0].mul(10)))
     expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1].mul(10).add(newPrice[1].mul(10)))
     expect((await pair.getReserves())[2]).to.eq(blockTimestamp + 20)
-  })
-  */
-}
+    })
+        */
+    }
 
-
-    function runSwapCase(uint256 swapAmount, uint256 token0Amount,uint256  token1Amount,uint256  expectedOutputAmount) internal {
-      addLiquidity(token0Amount, token1Amount);
-      token0.safeTransfer(address(pair), swapAmount);
-      vm.expectRevert();
-      pair.swap(0, expectedOutputAmount +1, address(this), "");
-      pair.swap(0, expectedOutputAmount, address(this), "");
+    function runSwapCase(uint256 swapAmount, uint256 token0Amount, uint256 token1Amount, uint256 expectedOutputAmount)
+        internal
+    {
+        addLiquidity(token0Amount, token1Amount);
+        token0.safeTransfer(address(pair), swapAmount);
+        vm.expectRevert();
+        pair.swap(0, expectedOutputAmount + 1, address(this), "");
+        pair.swap(0, expectedOutputAmount, address(this), "");
     }
 
     function test_swap1() public {
-      runSwapCase(1 ether, 5 ether, 10 ether, 1662497915624478906);
+        runSwapCase(1 ether, 5 ether, 10 ether, 1662497915624478906);
     }
+
     function test_swap2() public {
-      runSwapCase(1 ether, 10 ether, 5 ether, 453305446940074565);
+        runSwapCase(1 ether, 10 ether, 5 ether, 453305446940074565);
     }
     // [2, 5, 10, '2851015155847869602'],
+
     function test_swap3() public {
-      runSwapCase(2 ether, 5 ether, 10 ether, 2851015155847869602);
+        runSwapCase(2 ether, 5 ether, 10 ether, 2851015155847869602);
     }
 
     // [2, 10, 5, '831248957812239453'],
     function test_swap4() public {
-      runSwapCase(2 ether, 10 ether, 5 ether, 831248957812239453);
+        runSwapCase(2 ether, 10 ether, 5 ether, 831248957812239453);
     }
-  
+
     // [2, 10, 5, '831248957812239453'],
     function test_swap5() public {
-      runSwapCase(2 ether, 10 ether, 5 ether, 831248957812239453);
+        runSwapCase(2 ether, 10 ether, 5 ether, 831248957812239453);
     }
-    
+
     // [2, 10, 5, '831248957812239453'],
     function test_swap6() public {
-      runSwapCase(2 ether, 10 ether, 5 ether, 831248957812239453);
+        runSwapCase(2 ether, 10 ether, 5 ether, 831248957812239453);
     }
 
     // [1, 10, 10, '906610893880149131'],
     function test_swap7() public {
-      runSwapCase(1 ether, 10 ether, 10 ether, 906610893880149131);
+        runSwapCase(1 ether, 10 ether, 10 ether, 906610893880149131);
     }
 
     // [1, 100, 100, '987158034397061298'],
     function test_swap8() public {
-      runSwapCase(1 ether, 100 ether, 100 ether, 987158034397061298);
+        runSwapCase(1 ether, 100 ether, 100 ether, 987158034397061298);
     }
 
     // [1, 1000, 1000, '996006981039903216']
     function test_swap9() public {
-      runSwapCase(1 ether, 1000 ether, 1000 ether, 996006981039903216);
+        runSwapCase(1 ether, 1000 ether, 1000 ether, 996006981039903216);
     }
 
     /*
-  
+    
     
 
     
     
     
-  ].map(a => a.map(n => (typeof n === 'string' ? bigNumberify(n) : expandTo18Decimals(n))))
-  swapTestCases.forEach((swapTestCase, i) => {
+    ].map(a => a.map(n => (typeof n === 'string' ? bigNumberify(n) : expandTo18Decimals(n))))
+    swapTestCases.forEach((swapTestCase, i) => {
     it(`getInputPrice:${i}`, async () => {
       const [swapAmount, token0Amount, token1Amount, expectedOutputAmount] = swapTestCase
       await addLiquidity(token0Amount, token1Amount)
@@ -389,9 +390,8 @@ function test_CumulativePrice() public {
       )
       await pair.swap(0, expectedOutputAmount, wallet.address, '0x', overrides)
     })
-  })
-  */
-
+    })
+    */
 }
 /*
 

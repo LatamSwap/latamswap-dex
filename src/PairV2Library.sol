@@ -50,9 +50,9 @@ library PairV2Library {
     {
         require(amountIn > 0, "INSUFFICIENT_INPUT_AMOUNT");
         require(reserveIn > 0 && reserveOut > 0, "INSUFFICIENT_LIQUIDITY");
-        uint256 amountInWithFee = amountIn * (997);
+        uint256 amountInWithFee = amountIn * 997;
         uint256 numerator = amountInWithFee * (reserveOut);
-        uint256 denominator = reserveIn * (1000) + (amountInWithFee);
+        uint256 denominator = reserveIn * 1000 + (amountInWithFee);
         unchecked {
             amountOut = numerator / denominator;
         }
