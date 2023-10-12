@@ -4,7 +4,7 @@ pragma solidity 0.8.20;
 import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {UQ112x112} from "./utils/UQ112x112.sol";
-import {ReentrancyGuard} from "./utils/ReentrancyGuard.sol";
+import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 import {IUniswapV2Callee} from "v2-core/interfaces/IUniswapV2Callee.sol";
 import {ERC20} from "solady/tokens/ERC20.sol";
 import {ERC1363} from "./ERC1363.sol";
