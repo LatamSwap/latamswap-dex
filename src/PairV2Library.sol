@@ -74,7 +74,7 @@ library PairV2Library {
     }
 
     // performs chained getAmountOut calculations on any number of pairs
-    function getAmountsOut(address factory, uint256 amountIn, address[] memory path)
+    function getAmountsOut(address factory, uint256 amountIn, address[] calldata path)
         internal
         view
         returns (uint256[] memory amounts)
@@ -91,7 +91,7 @@ library PairV2Library {
     }
 
     // performs chained getAmountIn calculations on any number of pairs
-    function getAmountsIn(address factory, uint256 amountOut, address[] memory path)
+    function getAmountsIn(address factory, uint256 amountOut, address[] calldata path)
         internal
         view
         returns (uint256[] memory amounts)
