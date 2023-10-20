@@ -197,8 +197,8 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
 
     // **** SWAP ****
     // requires the initial amount to have already been sent to the first pair
-        for (uint256 i; i < path.length - 1; ++i) {
     function _swap(uint256[] memory amounts, address[] calldata path, address _to) internal virtual {
+        for (uint256 i; i < path.length - 1; ++i) {
             (address input, address output) = (path[i], path[i + 1]);
             (address token0,) = PairV2Library.sortTokens(input, output);
             uint256 amountOut = amounts[i + 1];
@@ -412,7 +412,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         return PairV2Library.getAmountIn(amountOut, reserveIn, reserveOut);
     }
 
-    function getAmountsOut(uint256 amountIn, address[] memory path)
+    function getAmountsOut(uint256 amountIn, address[] calldata path)
         public
         view
         virtual
@@ -422,8 +422,8 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         return PairV2Library.getAmountsOut(factory, amountIn, path);
     }
 
-        public
     function getAmountsIn(uint256 amountOut, address[] calldata path)
+        public
         view
         virtual
         override
