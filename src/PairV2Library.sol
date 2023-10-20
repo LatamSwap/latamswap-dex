@@ -39,7 +39,10 @@ library PairV2Library {
     function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) internal pure returns (uint256 amountB) {
         require(amountA > 0, "INSUFFICIENT_AMOUNT");
         require(reserveA > 0 && reserveB > 0, "INSUFFICIENT_LIQUIDITY");
-        amountB = amountA * reserveB / reserveA;
+        amountB = amountA * reserveB;
+        unchecked {
+            amountB = amountB / reserveA;
+        }
     }
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
