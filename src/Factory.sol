@@ -22,7 +22,7 @@ contract LatamswapFactory is Ownable {
     address[] public allPairs;
 
     /// @dev Event emitted when a new pair is created
-    event PairCreated(address indexed token0, address indexed token1, address pair, uint256);
+    event PairCreated(address indexed token0, address indexed token1, address pair, uint256 allPairsLength);
 
     /// @dev Initializes the owner of the contract
     constructor(address _owner) {
