@@ -74,7 +74,7 @@ library PairV2Library {
     {
         if (amountOut == 0) revert ErrInsufficientOutputAmount();
         if (reserveIn == 0 || reserveOut == 0) revert ErrInsufficientLiquidity();
- uint256 numerator = reserveIn * amountOut * 1000;
+        uint256 numerator = reserveIn * amountOut * 1000;
         uint256 denominator = (reserveOut - amountOut) * 997;
         unchecked {
             amountIn = (numerator / denominator) + 1;
