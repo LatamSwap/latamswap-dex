@@ -21,14 +21,18 @@ library PairV2Library {
         if (token0 == address(0)) revert ErrZeroAddress();
     }
 
-    // calculates the CREATE2 address for a pair without making any external calls
     // @dev token must be sorted!
-    function pairFor(address factory, address token0, address token1) internal pure returns (address pair) {
-        (token0, token1) = PairV2Library.sortTokens(token0, token1);
+    function pairForSorted(address factory, address token0, address token1) internal pure returns (address pair) {
         bytes memory params = abi.encode(token0, token1);
         bytes memory bytecode = abi.encodePacked(type(PairV2).creationCode, params);
 
         pair = Create2.computeAddress(keccak256(params), keccak256(bytecode), factory);
+    }
+
+    // calculates the CREATE2 address for a pair without making any external calls
+    function pairFor(address factory, address token0, address token1) internal pure returns (address pair) {
+        (token0, token1) = PairV2Library.sortTokens(token0, token1);
+        return pairForSorted(factory, token0, token1);
     }
 
     // fetches and sorts the reserves for a pair
@@ -38,7 +42,7 @@ library PairV2Library {
         returns (uint256 reserveA, uint256 reserveB)
     {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
-        (uint112 _reserve0, uint112 _reserve1,) = IUniswapV2Pair(pairFor(factory, token0, token1)).getReserves();
+        (uint112 _reserve0, uint112 _reserve1,) = IUniswapV2Pair(pairForSorted(factory, token0, token1)).getReserves();
         (reserveA, reserveB) =
             tokenA == token0 ? (uint256(_reserve0), uint256(_reserve1)) : (uint256(_reserve1), uint256(_reserve0));
     }

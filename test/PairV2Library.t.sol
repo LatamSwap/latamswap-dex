@@ -51,6 +51,20 @@ contract PairV2LibraryTest is Test {
         PairV2Library.sortTokens(tokenA, address(0));
     }
 
+    // Function: pairForSorted
+
+    function test_pairForSorted_sorted() public {
+        address pair = PairV2Library.pairForSorted(factory, tokenA, tokenB);
+
+        assertEq(pair, pairAB, "Fail pairAB");
+    }
+
+    function test_pairForSorted_notSorted() public {
+        address pair = PairV2Library.pairForSorted(factory, tokenB, tokenA);
+
+        assertNotEq(pair, pairAB, "Fail pairAB");
+    }
+
     // Function: pairFor
 
     function test_pairFor_sorted() public {
