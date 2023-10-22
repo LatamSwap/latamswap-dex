@@ -16,6 +16,7 @@ library PairV2Library {
     // calculates the CREATE2 address for a pair without making any external calls
     // @dev token must be sorted!
     function pairFor(address factory, address token0, address token1) internal pure returns (address pair) {
+        (token0, token1) = PairV2Library.sortTokens(token0, token1);
         bytes memory params = abi.encode(uint256(uint160(token0)), uint256(uint160(token1)));
         bytes memory bytecode =
             abi.encodePacked(type(PairV2).creationCode, uint256(uint160(token0)), uint256(uint160(token1)));
