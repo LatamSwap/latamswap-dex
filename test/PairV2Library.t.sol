@@ -4,7 +4,7 @@ pragma solidity >=0.8.10;
 import "forge-std/Test.sol";
 
 import {LatamswapFactory} from "src/Factory.sol";
-import {PairV2} from "src/PairV2.sol";
+import {IUniswapV2Pair} from "v2-core/interfaces/IUniswapV2Pair.sol";
 import {MockToken} from "./MockToken.sol";
 
 import {PairV2Library} from "src/PairV2Library.sol";
@@ -70,7 +70,7 @@ contract PairV2LibraryTest is Test {
     function test_getReserves_sorted() public {
         deal(tokenA, pairAB, 1);
         deal(tokenB, pairAB, 2);
-        PairV2(pairAB).sync();
+        IUniswapV2Pair(pairAB).sync();
         (uint256 reserveA, uint256 reserveB) = PairV2Library.getReserves(factory, tokenA, tokenB);
 
         assertEq(reserveA, 1, "Fail reserveA");
@@ -80,7 +80,7 @@ contract PairV2LibraryTest is Test {
     function test_getReserves_notSorted() public {
         deal(tokenB, pairAB, 2);
         deal(tokenA, pairAB, 1);
-        PairV2(pairAB).sync();
+        IUniswapV2Pair(pairAB).sync();
         (uint256 reserveA, uint256 reserveB) = PairV2Library.getReserves(factory, tokenB, tokenA);
 
         assertEq(reserveB, 1, "Fail reserveA");
@@ -193,7 +193,7 @@ contract PairV2LibraryTest is Test {
         // token addresses are sorted
         address predicted = PairV2Library.pairFor(factory, token0, token1);
 
-        PairV2 pair = PairV2(LatamswapFactory(factory).createPair(token0, token1));
+        IUniswapV2Pair pair = IUniswapV2Pair(LatamswapFactory(factory).createPair(token0, token1));
         assertEq(pair.token0(), token0, "wrong token0");
         assertEq(pair.token1(), token1, "wrong token1");
 
