@@ -66,7 +66,7 @@ contract TestCore is Test {
 
         vm.prank(0xC0dE429aA384a6641fDc0Af4e6bcfb04054535b8);
         vm.setNonce(0xC0dE429aA384a6641fDc0Af4e6bcfb04054535b8, 131644038);
-        nativo = new Nativo("Nativo Wrapper Ether", "nETH", makeAddr("treasuryNativo"), makeAddr("treasuryNativo"));
+        nativo = new Nativo("Nativo Wrapper Ether", "nETH");
         vm.label(address(nativo), "NATIVO");
         assertEq(address(nativo), 0x0000000B81F7260fA5add246b9C23bb2D89dDB20);
 
