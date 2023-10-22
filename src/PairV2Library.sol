@@ -18,8 +18,7 @@ library PairV2Library {
     function pairFor(address factory, address token0, address token1) internal pure returns (address pair) {
         (token0, token1) = PairV2Library.sortTokens(token0, token1);
         bytes memory params = abi.encode(token0, token1);
-        bytes memory bytecode =
-            abi.encodePacked(type(PairV2).creationCode, params);
+        bytes memory bytecode = abi.encodePacked(type(PairV2).creationCode, params);
 
         pair = Create2.computeAddress(keccak256(params), keccak256(bytecode), factory);
     }
