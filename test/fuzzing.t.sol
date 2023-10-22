@@ -66,7 +66,7 @@ contract TestCore is Test {
 
         vm.prank(0xC0dE429aA384a6641fDc0Af4e6bcfb04054535b8);
         vm.setNonce(0xC0dE429aA384a6641fDc0Af4e6bcfb04054535b8, 131644038);
-        nativo = new Nativo("Nativo Wrapper Ether", "nETH");
+        nativo = new Nativo("Nativo Wrapper Ether", "nETH", address(0), address(0));
         vm.label(address(nativo), "NATIVO");
         assertEq(address(nativo), 0x0000000B81F7260fA5add246b9C23bb2D89dDB20);
 
@@ -250,7 +250,7 @@ contract TestCore is Test {
         } catch { /*assert(false)*/ } // overflow
     }
 
-    /* INVARIANT: Removing liquidity from a pair should: 
+    /* INVARIANT: Removing liquidity from a pair should:
      * Decrease reserves
      * Decrease address to balance
      * Decrease totalSupply
@@ -341,7 +341,7 @@ contract TestCore is Test {
         } catch { /*assert(false)*/ } // overflow
     }
 
-    /* INVARIANT: Removing liquidity from a pair should: 
+    /* INVARIANT: Removing liquidity from a pair should:
      * Decrease reserves
      * Decrease address to balance
      * Decrease totalSupply
@@ -429,7 +429,7 @@ contract TestCore is Test {
         } catch { /*assert(false)*/ } // overflow
     }
 
-    /* INVARIANT: Removing liquidity from a pair should: 
+    /* INVARIANT: Removing liquidity from a pair should:
      * Decrease reserves
      * Decrease address to balance
      * Decrease totalSupply
@@ -470,7 +470,7 @@ contract TestCore is Test {
         } catch { /*assert(false)*/ } // overflow
     }
 
-    /* INVARIANT: Removing liquidity from a pair should: 
+    /* INVARIANT: Removing liquidity from a pair should:
      * Decrease reserves
      * Decrease address to balance
      * Decrease totalSupply
@@ -539,7 +539,7 @@ contract TestCore is Test {
     /* INVARIANT: swapExactTokensForTokens within a pair should:
      * Decrease balance of user for token 2
      * Increase balance of user for token 1
-     * K should decrease or remain the same 
+     * K should decrease or remain the same
     */
     function testFuzz_swapExactTokensForTokens(uint256 amount) public {
         // PRECONDITIONS:
@@ -585,7 +585,7 @@ contract TestCore is Test {
     /* INVARIANT: Swapping within a pair should:
      * Decrease balance of user for token 2
      * Increase balance of user for token 1
-     * K should decrease or remain the same 
+     * K should decrease or remain the same
     */
     function testFuzz_swapExactETHForTokens(uint256 amount) public {
         // PRECONDITIONS:
@@ -630,7 +630,7 @@ contract TestCore is Test {
     /* INVARIANT: Swapping within a pair should:
      * Decrease balance of user for token 2
      * Increase balance of user for token 1
-     * K should decrease or remain the same 
+     * K should decrease or remain the same
     */
     function testFuzz_swapTokensForExactETH(uint256 amount) public {
         // PRECONDITIONS:
@@ -675,7 +675,7 @@ contract TestCore is Test {
     /* INVARIANT: Swapping within a pair should:
      * Decrease balance of user for token 2
      * Increase balance of user for token 1
-     * K should decrease or remain the same 
+     * K should decrease or remain the same
     */
     function testFuzz_swapExactTokensForETH(uint256 amount) public {
         // PRECONDITIONS:
@@ -720,7 +720,7 @@ contract TestCore is Test {
     /* INVARIANT: Swapping within a pair should:
      * Decrease balance of user for token 2
      * Increase balance of user for token 1
-     * K should decrease or remain the same 
+     * K should decrease or remain the same
     */
     function testFuzz_swapETHForExactTokens(uint256 amount) public {
         // PRECONDITIONS:
@@ -765,7 +765,7 @@ contract TestCore is Test {
     /* INVARIANT: Swapping within a pair should:
      * Decrease balance of user for token 2
      * Increase balance of user for token 1
-     * K should decrease or remain the same 
+     * K should decrease or remain the same
     */
     function testFuzz_swapExactTokensForTokensSupportingFeeOnTransferTokens(uint256 amount) public {
         // PRECONDITIONS:
@@ -809,7 +809,7 @@ contract TestCore is Test {
     /* INVARIANT: Swapping within a pair should:
      * Decrease balance of user for token 2
      * Increase balance of user for token 1
-     * K should decrease or remain the same 
+     * K should decrease or remain the same
     */
     function testFuzz_swapExactETHForTokensSupportingFeeOnTransferTokens(uint256 amount) public {
         // PRECONDTION:
@@ -857,7 +857,7 @@ contract TestCore is Test {
     /* INVARIANT: Swapping within a pair should:
      * Decrease balance of user for token 2
      * Increase balance of user for token 1
-     * K should decrease or remain the same 
+     * K should decrease or remain the same
     */
     function testFuzz_swapExactTokensForETHSupportingFeeOnTransferTokens(uint256 amount) public {
         // PRECONDTION:
