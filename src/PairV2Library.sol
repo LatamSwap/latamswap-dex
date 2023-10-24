@@ -93,7 +93,8 @@ library PairV2Library {
         amounts = new uint256[](path.length);
         amounts[0] = amountIn;
         unchecked {
-            for (uint256 i; i < path.length - 1; ++i) {
+            uint256 pathLengthSub1 = path.length - 1;
+            for (uint256 i; i < pathLengthSub1; ++i) {
                 (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i], path[i + 1]);
                 amounts[i + 1] = getAmountOut(amounts[i], reserveIn, reserveOut);
             }
