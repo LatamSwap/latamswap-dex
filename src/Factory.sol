@@ -16,6 +16,10 @@ import {PairV2Library} from "./PairV2Library.sol";
 contract LatamswapFactory is Ownable {
     using SafeTransferLib for address;
 
+    error ErrZeroAddress();
+    error ErrIdenticalAddress();
+    error ErrPairExists();
+
     /// @dev Maps tokens to its pair
     mapping(address fromToken => mapping(address toToken => address pair)) public getPair;
     /// @dev Stores all created pairs
@@ -43,10 +47,10 @@ contract LatamswapFactory is Ownable {
      * @notice Tokens must be different and not already have a pair.
      */
     function createPair(address tokenA, address tokenB) external returns (address pair) {
-        require(tokenA != tokenB, "UniswapV2: IDENTICAL_ADDRESSES");
+        if (tokenA == tokenB) revert ErrIdenticalAddress();
         (address token0, address token1) = PairV2Library.sortTokens(tokenA, tokenB);
-        require(token0 != address(0), "UniswapV2: ZERO_ADDRESS");
-        require(getPair[token0][token1] == address(0), "UniswapV2: PAIR_EXISTS"); // single check is sufficient
+        if (token0 == address(0)) revert ErrZeroAddress();
+        if (getPair[token0][token1] != address(0)) revert ErrPairExists(); // single check is sufficient
 
         pair = address(
             new PairV2{
