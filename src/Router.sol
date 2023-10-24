@@ -197,7 +197,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
 
     // **** SWAP ****
     // requires the initial amount to have already been sent to the first pair
-    function _swap(uint256[] memory amounts, address[] memory path, address _to) internal virtual {
+    function _swap(uint256[] memory amounts, address[] calldata path, address _to) internal virtual {
         for (uint256 i; i < path.length - 1;) {
             (address input, address output) = (path[i], path[i + 1]);
             (address token0,) = PairV2Library.sortTokens(input, output);
@@ -390,12 +390,12 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
     }
 
     // **** LIBRARY FUNCTIONS ****
-    function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) public pure returns (uint256 amountB) {
+    function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) external pure returns (uint256 amountB) {
         return PairV2Library.quote(amountA, reserveA, reserveB);
     }
 
     function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut)
-        public
+        external
         pure
         virtual
         override
@@ -405,7 +405,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
     }
 
     function getAmountIn(uint256 amountOut, uint256 reserveIn, uint256 reserveOut)
-        public
+        external
         pure
         virtual
         override
@@ -414,8 +414,8 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         return PairV2Library.getAmountIn(amountOut, reserveIn, reserveOut);
     }
 
-    function getAmountsOut(uint256 amountIn, address[] memory path)
-        public
+    function getAmountsOut(uint256 amountIn, address[] calldata path)
+        external
         view
         virtual
         override
@@ -424,8 +424,8 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         return PairV2Library.getAmountsOut(factory, amountIn, path);
     }
 
-    function getAmountsIn(uint256 amountOut, address[] memory path)
-        public
+    function getAmountsIn(uint256 amountOut, address[] calldata path)
+        external
         view
         virtual
         override
