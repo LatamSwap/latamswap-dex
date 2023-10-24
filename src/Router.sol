@@ -388,12 +388,12 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
     }
 
     // **** LIBRARY FUNCTIONS ****
-    function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) public pure returns (uint256 amountB) {
+    function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) external pure returns (uint256 amountB) {
         return PairV2Library.quote(amountA, reserveA, reserveB);
     }
 
     function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut)
-        public
+        external
         pure
         virtual
         override
@@ -403,7 +403,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
     }
 
     function getAmountIn(uint256 amountOut, uint256 reserveIn, uint256 reserveOut)
-        public
+        external
         pure
         virtual
         override
@@ -413,7 +413,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
     }
 
     function getAmountsOut(uint256 amountIn, address[] calldata path)
-        public
+        external
         view
         virtual
         override
@@ -423,7 +423,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
     }
 
     function getAmountsIn(uint256 amountOut, address[] calldata path)
-        public
+        external
         view
         virtual
         override
