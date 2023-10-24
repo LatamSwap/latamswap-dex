@@ -133,7 +133,7 @@ contract PairV2Test is Test {
         unitoken1.safeTransfer(address(uniPair), amount1);
 
         try uniPair.mint(address(this)) {}
-        catch Error(string memory reason) {
+        catch Error(string memory) {
             vm.expectRevert();
             pair.mint(address(this));
             return;
@@ -270,7 +270,7 @@ contract PairV2Test is Test {
         assertEq(token1.balanceOf(address(pair)), 1000 + 250000187312969, "Expected liquidity not match");
     }
 
-    function encodePrice(uint256 reserve0, uint256 reserve1) internal returns (uint256 a, uint256 b) {
+    function encodePrice(uint256 reserve0, uint256 reserve1) internal pure returns (uint256 a, uint256 b) {
         a = reserve1 * (2 ** 112) / reserve0;
         b = reserve0 * (2 ** 112) / reserve1;
     }
@@ -373,12 +373,12 @@ contract PairV2Test is Test {
     }
 
     /*
-    
-    
 
-    
-    
-    
+
+
+
+
+
     ].map(a => a.map(n => (typeof n === 'string' ? bigNumberify(n) : expandTo18Decimals(n))))
     swapTestCases.forEach((swapTestCase, i) => {
     it(`getInputPrice:${i}`, async () => {
@@ -397,12 +397,12 @@ contract PairV2Test is Test {
 
     console.log("totalSupply", pair.totalSupply());
 
-    
+
     tokenA.transfer(address(pair), 1 ether);
     pair.swap(0.5 ether, 0, address(this), "");
     pair.skim(address(this));
     console.log("totalSupply", pair.totalSupply());
-    
+
     tokenA.transfer(address(pair), 100);
     tokenB.transfer(address(pair), 100);
     pair.mint(address(0xbeef));
@@ -422,7 +422,7 @@ contract PairV2Test is Test {
     pair.swap(0, 0.5 ether, address(this), "");
     pair.skim(address(this));
 console.log("totan A", tokenB.balanceOf(address(this)));
-    
+
     console.log("beef", pair.balanceOf(address(0xbeef)));
     console.log("totalSupply", pair.totalSupply());*/
 

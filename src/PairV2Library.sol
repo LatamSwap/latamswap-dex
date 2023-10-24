@@ -39,8 +39,7 @@ library PairV2Library {
     {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
         (uint112 _reserve0, uint112 _reserve1,) = IUniswapV2Pair(pairFor(factory, token0, token1)).getReserves();
-        (reserveA, reserveB) =
-            tokenA == token0 ? (uint256(_reserve0), uint256(_reserve1)) : (uint256(_reserve1), uint256(_reserve0));
+        (reserveA, reserveB) = tokenA == token0 ? (_reserve0, _reserve1) : (_reserve1, _reserve0);
     }
 
     // given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
@@ -60,7 +59,7 @@ library PairV2Library {
         if (reserveIn == 0 || reserveOut == 0) revert ErrInsufficientLiquidity();
         uint256 amountInWithFee = amountIn * 997;
         uint256 numerator = amountInWithFee * reserveOut;
-        uint256 denominator = reserveIn * 1000 + (amountInWithFee);
+        uint256 denominator = reserveIn * 1000 + amountInWithFee;
         unchecked {
             amountOut = numerator / denominator;
         }
@@ -74,15 +73,15 @@ library PairV2Library {
     {
         if (amountOut == 0) revert ErrInsufficientOutputAmount();
         if (reserveIn == 0 || reserveOut == 0) revert ErrInsufficientLiquidity();
-        uint256 numerator = reserveIn * (amountOut) * (1000);
-        uint256 denominator = (reserveOut - amountOut) * (997);
+        uint256 numerator = reserveIn * amountOut * 1000;
+        uint256 denominator = (reserveOut - amountOut) * 997;
         unchecked {
             amountIn = (numerator / denominator) + 1;
         }
     }
 
     // performs chained getAmountOut calculations on any number of pairs
-    function getAmountsOut(address factory, uint256 amountIn, address[] memory path)
+    function getAmountsOut(address factory, uint256 amountIn, address[] calldata path)
         internal
         view
         returns (uint256[] memory amounts)
@@ -99,7 +98,7 @@ library PairV2Library {
     }
 
     // performs chained getAmountIn calculations on any number of pairs
-    function getAmountsIn(address factory, uint256 amountOut, address[] memory path)
+    function getAmountsIn(address factory, uint256 amountOut, address[] calldata path)
         internal
         view
         returns (uint256[] memory amounts)
