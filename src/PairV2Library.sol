@@ -60,7 +60,7 @@ library PairV2Library {
         if (reserveIn == 0 || reserveOut == 0) revert ErrInsufficientLiquidity();
         uint256 amountInWithFee = amountIn * 997;
         uint256 numerator = amountInWithFee * reserveOut;
-        uint256 denominator = reserveIn * 1000 + (amountInWithFee);
+        uint256 denominator = reserveIn * 1000 + amountInWithFee;
         unchecked {
             amountOut = numerator / denominator;
         }
@@ -74,8 +74,8 @@ library PairV2Library {
     {
         if (amountOut == 0) revert ErrInsufficientOutputAmount();
         if (reserveIn == 0 || reserveOut == 0) revert ErrInsufficientLiquidity();
-        uint256 numerator = reserveIn * (amountOut) * (1000);
-        uint256 denominator = (reserveOut - amountOut) * (997);
+        uint256 numerator = reserveIn * amountOut * 1000;
+        uint256 denominator = (reserveOut - amountOut) * 997;
         unchecked {
             amountIn = (numerator / denominator) + 1;
         }
