@@ -39,8 +39,7 @@ library PairV2Library {
     {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
         (uint112 _reserve0, uint112 _reserve1,) = IUniswapV2Pair(pairFor(factory, token0, token1)).getReserves();
-        (reserveA, reserveB) =
-            tokenA == token0 ? (uint256(_reserve0), uint256(_reserve1)) : (uint256(_reserve1), uint256(_reserve0));
+        (reserveA, reserveB) = tokenA == token0 ? (_reserve0, _reserve1) : (_reserve1, _reserve0);
     }
 
     // given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
