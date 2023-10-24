@@ -6,19 +6,27 @@ import {Create2} from "openzeppelin/utils/Create2.sol";
 import {PairV2} from "./PairV2.sol";
 
 library PairV2Library {
+    error ErrZeroAddress();
+    error ErrIdenticalAddress();
+    error ErrInsufficientAmount();
+    error ErrInsufficientLiquidity();
+    error ErrInsufficientInputAmount();
+    error ErrInsufficientOutputAmount();
+    error ErrInvalidPath();
+
     // returns sorted token addresses, used to handle return values from pairs sorted in this order
     function sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
-        require(tokenA != tokenB, "Library: IDENTICAL_ADDRESSES");
+        if (tokenA == tokenB) revert ErrIdenticalAddress();
         (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-        require(token0 != address(0), "Library: ZERO_ADDRESS");
+        if (token0 == address(0)) revert ErrZeroAddress();
     }
 
     // calculates the CREATE2 address for a pair without making any external calls
     // @dev token must be sorted!
     function pairFor(address factory, address token0, address token1) internal pure returns (address pair) {
-        bytes memory params = abi.encode(uint256(uint160(token0)), uint256(uint160(token1)));
-        bytes memory bytecode =
-            abi.encodePacked(type(PairV2).creationCode, uint256(uint160(token0)), uint256(uint160(token1)));
+        (token0, token1) = PairV2Library.sortTokens(token0, token1);
+        bytes memory params = abi.encode(token0, token1);
+        bytes memory bytecode = abi.encodePacked(type(PairV2).creationCode, params);
 
         pair = Create2.computeAddress(keccak256(params), keccak256(bytecode), factory);
     }
@@ -31,15 +39,14 @@ library PairV2Library {
     {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
         (uint112 _reserve0, uint112 _reserve1,) = IUniswapV2Pair(pairFor(factory, token0, token1)).getReserves();
-        (reserveA, reserveB) =
-            tokenA == token0 ? (uint256(_reserve0), uint256(_reserve1)) : (uint256(_reserve1), uint256(_reserve0));
+        (reserveA, reserveB) = tokenA == token0 ? (_reserve0, _reserve1) : (_reserve1, _reserve0);
     }
 
     // given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
     function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) internal pure returns (uint256 amountB) {
-        require(amountA > 0, "INSUFFICIENT_AMOUNT");
-        require(reserveA > 0 && reserveB > 0, "INSUFFICIENT_LIQUIDITY");
+        if (amountA == 0) revert ErrInsufficientAmount();
         amountB = amountA * reserveB / reserveA;
+        if (reserveB == 0) revert ErrInsufficientLiquidity();
     }
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
@@ -48,11 +55,11 @@ library PairV2Library {
         pure
         returns (uint256 amountOut)
     {
-        require(amountIn > 0, "INSUFFICIENT_INPUT_AMOUNT");
-        require(reserveIn > 0 && reserveOut > 0, "INSUFFICIENT_LIQUIDITY");
+        if (amountIn == 0) revert ErrInsufficientInputAmount();
+        if (reserveIn == 0 || reserveOut == 0) revert ErrInsufficientLiquidity();
         uint256 amountInWithFee = amountIn * 997;
-        uint256 numerator = amountInWithFee * (reserveOut);
-        uint256 denominator = reserveIn * 1000 + (amountInWithFee);
+        uint256 numerator = amountInWithFee * reserveOut;
+        uint256 denominator = reserveIn * 1000 + amountInWithFee;
         unchecked {
             amountOut = numerator / denominator;
         }
@@ -64,22 +71,22 @@ library PairV2Library {
         pure
         returns (uint256 amountIn)
     {
-        require(amountOut > 0, "INSUFFICIENT_OUTPUT_AMOUNT");
-        require(reserveIn > 0 && reserveOut > 0, "INSUFFICIENT_LIQUIDITY");
-        uint256 numerator = reserveIn * (amountOut) * (1000);
-        uint256 denominator = (reserveOut - amountOut) * (997);
+        if (amountOut == 0) revert ErrInsufficientOutputAmount();
+        if (reserveIn == 0 || reserveOut == 0) revert ErrInsufficientLiquidity();
+        uint256 numerator = reserveIn * amountOut * 1000;
+        uint256 denominator = (reserveOut - amountOut) * 997;
         unchecked {
             amountIn = (numerator / denominator) + 1;
         }
     }
 
     // performs chained getAmountOut calculations on any number of pairs
-    function getAmountsOut(address factory, uint256 amountIn, address[] memory path)
+    function getAmountsOut(address factory, uint256 amountIn, address[] calldata path)
         internal
         view
         returns (uint256[] memory amounts)
     {
-        require(path.length > 1, "INVALID_PATH");
+        if (path.length < 2) revert ErrInvalidPath();
         amounts = new uint256[](path.length);
         amounts[0] = amountIn;
         unchecked {
@@ -91,12 +98,12 @@ library PairV2Library {
     }
 
     // performs chained getAmountIn calculations on any number of pairs
-    function getAmountsIn(address factory, uint256 amountOut, address[] memory path)
+    function getAmountsIn(address factory, uint256 amountOut, address[] calldata path)
         internal
         view
         returns (uint256[] memory amounts)
     {
-        require(path.length > 1, "Library: INVALID_PATH");
+        if (path.length < 2) revert ErrInvalidPath();
         amounts = new uint256[](path.length);
         unchecked {
             amounts[amounts.length - 1] = amountOut;
