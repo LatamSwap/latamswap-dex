@@ -74,6 +74,9 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
             revert ErrLatamswapOverflow();
         }
 
+        uint112 _balance0 = uint112(balance0); // gas savings
+        uint112 _balance1 = uint112(balance1); // gas savings
+
         unchecked {
             uint32 timeElapsed = uint32(block.timestamp - blockTimestampLast); // overflow is desired
             if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
@@ -82,12 +85,12 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
                 price1CumulativeLast += uint256(UQ112x112.encode(_reserve0).uqdiv(_reserve1)) * timeElapsed;
             }
 
-            reserve0 = uint112(balance0);
-            reserve1 = uint112(balance1);
+            reserve0 = _balance0;
+            reserve1 = _balance1;
             blockTimestampLast = uint32(block.timestamp);
         }
 
-        emit Sync(reserve0, reserve1);
+        emit Sync(_balance0, _balance1);
     }
 
     // fee is always on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
@@ -168,12 +171,16 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
         if (amount0Out >= _reserve0 || amount1Out >= _reserve1) revert ErrLatamswapInsufficientLiquidity();
 
-        if (to == token0 || to == token1) revert ErrLatamswapInvalidTo();
-        if (amount0Out > 0) token0.safeTransfer(to, amount0Out); // optimistically transfer tokens
-        if (amount1Out > 0) token1.safeTransfer(to, amount1Out); // optimistically transfer tokens
-        if (data.length > 0) IUniswapV2Callee(to).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
-        uint256 balance0 = token0.balanceOf(address(this));
-        uint256 balance1 = token1.balanceOf(address(this));
+        uint256 balance0;
+        uint256 balance1;
+        {
+            if (to == token0 || to == token1) revert ErrLatamswapInvalidTo();
+            if (amount0Out > 0) token0.safeTransfer(to, amount0Out); // optimistically transfer tokens
+            if (amount1Out > 0) token1.safeTransfer(to, amount1Out); // optimistically transfer tokens
+            if (data.length > 0) IUniswapV2Callee(to).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
+            balance0 = token0.balanceOf(address(this));
+            balance1 = token1.balanceOf(address(this));
+        }
 
         uint256 amount0In;
         uint256 amount1In;
