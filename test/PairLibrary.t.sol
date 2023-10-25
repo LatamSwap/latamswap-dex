@@ -7,9 +7,9 @@ import {LatamswapFactory} from "src/Factory.sol";
 import {IUniswapV2Pair} from "v2-core/interfaces/IUniswapV2Pair.sol";
 import {MockToken} from "./MockToken.sol";
 
-import {PairV2Library} from "src/PairV2Library.sol";
+import {PairLibrary} from "src/PairLibrary.sol";
 
-contract PairV2LibraryTest is Test {
+contract PairLibraryTest is Test {
     address factory;
 
     address tokenA = address(10);
@@ -28,39 +28,39 @@ contract PairV2LibraryTest is Test {
     // Function: sortTokens
 
     function test_sortTokens_sorted() public {
-        (address token0, address token1) = PairV2Library.sortTokens(tokenA, tokenB);
+        (address token0, address token1) = PairLibrary.sortTokens(tokenA, tokenB);
 
         assertEq(tokenA, token0, "Fail sort tokenA");
         assertEq(tokenB, token1, "Fail sort tokenB");
     }
 
     function test_sortTokens_notSorted() public {
-        (address token0, address token1) = PairV2Library.sortTokens(tokenB, tokenA);
+        (address token0, address token1) = PairLibrary.sortTokens(tokenB, tokenA);
 
         assertEq(tokenA, token0, "Fail sort tokenA");
         assertEq(tokenB, token1, "Fail sort tokenB");
     }
 
     function testTry_sortTokens_IdenticalAddress() public {
-        vm.expectRevert(PairV2Library.ErrIdenticalAddress.selector);
-        PairV2Library.sortTokens(tokenA, tokenA);
+        vm.expectRevert(PairLibrary.ErrIdenticalAddress.selector);
+        PairLibrary.sortTokens(tokenA, tokenA);
     }
 
     function testTry_sortTokens_ZeroAddress() public {
-        vm.expectRevert(PairV2Library.ErrZeroAddress.selector);
-        PairV2Library.sortTokens(tokenA, address(0));
+        vm.expectRevert(PairLibrary.ErrZeroAddress.selector);
+        PairLibrary.sortTokens(tokenA, address(0));
     }
 
     // Function: pairFor
 
     function test_pairFor_sorted() public {
-        address pair = PairV2Library.pairFor(factory, tokenA, tokenB);
+        address pair = PairLibrary.pairFor(factory, tokenA, tokenB);
 
         assertEq(pair, pairAB, "Fail pairAB");
     }
 
     function test_pairFor_notSorted() public {
-        address pair = PairV2Library.pairFor(factory, tokenB, tokenA);
+        address pair = PairLibrary.pairFor(factory, tokenB, tokenA);
 
         assertEq(pair, pairAB, "Fail pairAB");
     }
@@ -71,7 +71,7 @@ contract PairV2LibraryTest is Test {
         deal(tokenA, pairAB, 1);
         deal(tokenB, pairAB, 2);
         IUniswapV2Pair(pairAB).sync();
-        (uint256 reserveA, uint256 reserveB) = PairV2Library.getReserves(factory, tokenA, tokenB);
+        (uint256 reserveA, uint256 reserveB) = PairLibrary.getReserves(factory, tokenA, tokenB);
 
         assertEq(reserveA, 1, "Fail reserveA");
         assertEq(reserveB, 2, "Fail reserveB");
@@ -81,7 +81,7 @@ contract PairV2LibraryTest is Test {
         deal(tokenB, pairAB, 2);
         deal(tokenA, pairAB, 1);
         IUniswapV2Pair(pairAB).sync();
-        (uint256 reserveA, uint256 reserveB) = PairV2Library.getReserves(factory, tokenB, tokenA);
+        (uint256 reserveA, uint256 reserveB) = PairLibrary.getReserves(factory, tokenB, tokenA);
 
         assertEq(reserveB, 1, "Fail reserveA");
         assertEq(reserveA, 2, "Fail reserveB");
@@ -90,7 +90,7 @@ contract PairV2LibraryTest is Test {
     // Function: quote
 
     function test_quote() public {
-        uint256 amountB = PairV2Library.quote(1 ether, 3 ether, 2 ether);
+        uint256 amountB = PairLibrary.quote(1 ether, 3 ether, 2 ether);
 
         // Dummy test...
         // 1 ether * 2 ether / 3 ether
@@ -98,62 +98,62 @@ contract PairV2LibraryTest is Test {
     }
 
     function testTry_quote_InsufficientAmount() public {
-        vm.expectRevert(PairV2Library.ErrInsufficientAmount.selector);
-        PairV2Library.quote(0, 1, 1);
+        vm.expectRevert(PairLibrary.ErrInsufficientAmount.selector);
+        PairLibrary.quote(0, 1, 1);
     }
 
     function testTry_quote_InsufficientLiquidity() public {
-        vm.expectRevert(PairV2Library.ErrInsufficientLiquidity.selector);
-        PairV2Library.quote(1, 1, 0);
+        vm.expectRevert(PairLibrary.ErrInsufficientLiquidity.selector);
+        PairLibrary.quote(1, 1, 0);
     }
 
     function testTry_quote_reserveAZero() public {
         vm.expectRevert(stdError.divisionError);
-        PairV2Library.quote(1, 0, 1);
+        PairLibrary.quote(1, 0, 1);
     }
 
     // Function: getAmountOut
 
     function test_getAmountOut() public {
-        uint256 amountOut = PairV2Library.getAmountOut(1 ether, 3 ether, 2 ether);
+        uint256 amountOut = PairLibrary.getAmountOut(1 ether, 3 ether, 2 ether);
 
         // Dummy test...
         assertEq(amountOut, 498874155616712534);
     }
 
     function testTry_getAmountOut_InsufficientInputAmount() public {
-        vm.expectRevert(PairV2Library.ErrInsufficientInputAmount.selector);
-        PairV2Library.getAmountOut(0, 1, 1);
+        vm.expectRevert(PairLibrary.ErrInsufficientInputAmount.selector);
+        PairLibrary.getAmountOut(0, 1, 1);
     }
 
     function testTry_getAmountOut_InsufficientLiquidity() public {
-        vm.expectRevert(PairV2Library.ErrInsufficientLiquidity.selector);
-        PairV2Library.getAmountOut(1, 1, 0);
+        vm.expectRevert(PairLibrary.ErrInsufficientLiquidity.selector);
+        PairLibrary.getAmountOut(1, 1, 0);
 
-        vm.expectRevert(PairV2Library.ErrInsufficientLiquidity.selector);
-        PairV2Library.getAmountOut(1, 1, 0);
+        vm.expectRevert(PairLibrary.ErrInsufficientLiquidity.selector);
+        PairLibrary.getAmountOut(1, 1, 0);
     }
 
     // Function: getAmountIn
 
     function test_getAmountIn() public {
-        uint256 amountIn = PairV2Library.getAmountIn(1 ether, 3 ether, 2 ether);
+        uint256 amountIn = PairLibrary.getAmountIn(1 ether, 3 ether, 2 ether);
 
         // Dummy test...
         assertEq(amountIn, 3009027081243731194);
     }
 
     function testTry_getAmountIn_InsufficientOutputAmount() public {
-        vm.expectRevert(PairV2Library.ErrInsufficientOutputAmount.selector);
-        PairV2Library.getAmountIn(0, 1, 1);
+        vm.expectRevert(PairLibrary.ErrInsufficientOutputAmount.selector);
+        PairLibrary.getAmountIn(0, 1, 1);
     }
 
     function testTry_getAmountIn_InsufficientLiquidity() public {
-        vm.expectRevert(PairV2Library.ErrInsufficientLiquidity.selector);
-        PairV2Library.getAmountIn(1, 1, 0);
+        vm.expectRevert(PairLibrary.ErrInsufficientLiquidity.selector);
+        PairLibrary.getAmountIn(1, 1, 0);
 
-        vm.expectRevert(PairV2Library.ErrInsufficientLiquidity.selector);
-        PairV2Library.getAmountIn(1, 1, 0);
+        vm.expectRevert(PairLibrary.ErrInsufficientLiquidity.selector);
+        PairLibrary.getAmountIn(1, 1, 0);
     }
 
     // Function: getAmountsOut
@@ -169,12 +169,12 @@ contract PairV2LibraryTest is Test {
     function testSort(address _tokenA, address _tokenB) public {
         if (_tokenA == address(0) || _tokenB == address(0)) {
             vm.expectRevert();
-            PairV2Library.sortTokens(_tokenA, _tokenB);
+            PairLibrary.sortTokens(_tokenA, _tokenB);
         } else if (_tokenA == _tokenB) {
             vm.expectRevert();
-            PairV2Library.sortTokens(_tokenA, _tokenB);
+            PairLibrary.sortTokens(_tokenA, _tokenB);
         } else {
-            (address token0, address token1) = PairV2Library.sortTokens(_tokenA, _tokenB);
+            (address token0, address token1) = PairLibrary.sortTokens(_tokenA, _tokenB);
 
             if (_tokenA < _tokenB) {
                 assertEq(token0, _tokenA);
@@ -188,10 +188,10 @@ contract PairV2LibraryTest is Test {
 
     function testReal(address _tokenA, address _tokenB) public {
         vm.assume(_tokenA != address(0) && _tokenA != _tokenB && _tokenB != address(0));
-        (address token0, address token1) = PairV2Library.sortTokens(_tokenA, _tokenB);
+        (address token0, address token1) = PairLibrary.sortTokens(_tokenA, _tokenB);
 
         // token addresses are sorted
-        address predicted = PairV2Library.pairFor(factory, token0, token1);
+        address predicted = PairLibrary.pairFor(factory, token0, token1);
 
         IUniswapV2Pair pair = IUniswapV2Pair(LatamswapFactory(factory).createPair(token0, token1));
         assertEq(pair.token0(), token0, "wrong token0");

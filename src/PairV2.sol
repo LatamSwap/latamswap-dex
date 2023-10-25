@@ -8,8 +8,9 @@ import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 import {IUniswapV2Callee} from "v2-core/interfaces/IUniswapV2Callee.sol";
 import {ERC20} from "solady/tokens/ERC20.sol";
 import {ERC1363} from "./ERC1363.sol";
+import {IPairLatamSwap} from "./interfaces/IPairLatamSwap.sol";
 
-contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
+contract PairV2 is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
     using SafeTransferLib for address;
     using UQ112x112 for uint224;
 
@@ -42,26 +43,6 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         _blockTimestampLast = blockTimestampLast;
     }
 
-    event Mint(address indexed sender, uint256 amount0, uint256 amount1);
-    event Burn(address indexed sender, uint256 amount0, uint256 amount1, address indexed to);
-    event Swap(
-        address indexed sender,
-        uint256 amount0In,
-        uint256 amount1In,
-        uint256 amount0Out,
-        uint256 amount1Out,
-        address indexed to
-    );
-    event Sync(uint112 reserve0, uint112 reserve1);
-
-    error ErrLatamswapWrongK();
-    error ErrLatamswapOverflow();
-    error ErrLatamswapInsufficientLiquidity();
-    error ErrLatamswapInsufficientLiquidityBurned();
-    error ErrLatamswapInsufficientOutputAmount();
-    error ErrLatamswapInvalidTo();
-    error ErrLatamswapInsufficientInputAmount();
-
     constructor(address _token0, address _token1) {
         factory = msg.sender;
         token0 = _token0;
@@ -74,6 +55,9 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
             revert ErrLatamswapOverflow();
         }
 
+        uint112 _balance0 = uint112(balance0); // gas savings
+        uint112 _balance1 = uint112(balance1); // gas savings
+
         unchecked {
             uint32 timeElapsed = uint32(block.timestamp - blockTimestampLast); // overflow is desired
             if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
@@ -82,12 +66,12 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
                 price1CumulativeLast += uint256(UQ112x112.encode(_reserve0).uqdiv(_reserve1)) * timeElapsed;
             }
 
-            reserve0 = uint112(balance0);
-            reserve1 = uint112(balance1);
+            reserve0 = _balance0;
+            reserve1 = _balance1;
             blockTimestampLast = uint32(block.timestamp);
         }
 
-        emit Sync(reserve0, reserve1);
+        emit Sync(_balance0, _balance1);
     }
 
     // fee is always on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
@@ -118,18 +102,14 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         _mintFee(_reserve0, _reserve1);
         uint256 _totalSupply = totalSupply(); // gas savings, must be defined here since totalSupply can update in _mintFee
         if (_totalSupply == 0) {
-
-            liquidity = FixedPointMathLib.sqrt(amount0 * (amount1));
-            if (liquidity <= MINIMUM_LIQUIDITY) {
-                revert ErrLatamswapInsufficientLiquidity();
-            }
+            liquidity = FixedPointMathLib.sqrt(amount0 * amount1);
+            if (liquidity <= MINIMUM_LIQUIDITY) revert ErrLatamswapInsufficientLiquidity();
             unchecked { // Previous if checks the overflow
                 liquidity -= MINIMUM_LIQUIDITY;
             }
             _mint(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
         } else {
-            liquidity =
-                FixedPointMathLib.min(amount0 * (_totalSupply) / _reserve0, amount1 * (_totalSupply) / _reserve1);
+            liquidity = FixedPointMathLib.min(amount0 * _totalSupply / _reserve0, amount1 * _totalSupply / _reserve1);
         }
 
         if (liquidity == 0) revert ErrLatamswapInsufficientLiquidity();
@@ -150,8 +130,12 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
 
         _mintFee(_reserve0, _reserve1);
         uint256 _totalSupply = totalSupply(); // gas savings, must be defined here since totalSupply can update in _mintFee
-        amount0 = liquidity * balance0 / _totalSupply; // using balances ensures pro-rata distribution
-        amount1 = liquidity * balance1 / _totalSupply; // using balances ensures pro-rata distribution
+        amount0 = liquidity * balance0; // using balances ensures pro-rata distribution
+        amount1 = liquidity * balance1; // using balances ensures pro-rata distribution
+        unchecked {
+            amount0 = amount0 / _totalSupply;
+            amount1 = amount1 / _totalSupply;
+        }
         if (amount0 == 0 || amount1 == 0) revert ErrLatamswapInsufficientLiquidityBurned();
         _burn(address(this), liquidity);
         token0.safeTransfer(to, amount0);
@@ -170,12 +154,16 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
         if (amount0Out >= _reserve0 || amount1Out >= _reserve1) revert ErrLatamswapInsufficientLiquidity();
 
-        if (to == token0 || to == token1) revert ErrLatamswapInvalidTo();
-        if (amount0Out > 0) token0.safeTransfer(to, amount0Out); // optimistically transfer tokens
-        if (amount1Out > 0) token1.safeTransfer(to, amount1Out); // optimistically transfer tokens
-        if (data.length > 0) IUniswapV2Callee(to).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
-        uint256 balance0 = token0.balanceOf(address(this));
-        uint256 balance1 = token1.balanceOf(address(this));
+        uint256 balance0;
+        uint256 balance1;
+        {
+            if (to == token0 || to == token1) revert ErrLatamswapInvalidTo();
+            if (amount0Out > 0) token0.safeTransfer(to, amount0Out); // optimistically transfer tokens
+            if (amount1Out > 0) token1.safeTransfer(to, amount1Out); // optimistically transfer tokens
+            if (data.length > 0) IUniswapV2Callee(to).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
+            balance0 = token0.balanceOf(address(this));
+            balance1 = token1.balanceOf(address(this));
+        }
 
         uint256 amount0In;
         uint256 amount1In;
@@ -193,7 +181,7 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
             uint256 balance0Adjusted = balance0 * 1_000 - (amount0In * 3);
             uint256 balance1Adjusted = balance1 * 1_000 - (amount1In * 3);
 
-            if ((balance0Adjusted * balance1Adjusted) < (uint256(_reserve0) * _reserve1 * 1_000_000)) {
+            if ((balance0Adjusted * balance1Adjusted) < (uint256(_reserve0) * uint256(_reserve1) * 1_000_000)) {
                 revert ErrLatamswapWrongK();
             }
         }

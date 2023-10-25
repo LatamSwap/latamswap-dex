@@ -3,11 +3,18 @@ pragma solidity 0.8.20;
 import {IUniswapV2Factory} from "v2-core/interfaces/IUniswapV2Factory.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {IUniswapV2Router02} from "./interfaces/IUniswapV2Router02.sol";
-import {PairV2Library} from "./PairV2Library.sol";
+import {PairLibrary} from "./PairLibrary.sol";
 import {PairV2} from "./PairV2.sol";
 import {INativo} from "nativo/INativo.sol";
 
-contract LatamswapV2Router02 is IUniswapV2Router02 {
+contract LatamswapRouter is IUniswapV2Router02 {
+    error ErrExpired();
+    error ErrInsufficientAmountA();
+    error ErrInsufficientAmountB();
+    error ErrInsufficientOutputAmount();
+    error ErrExcessiveInputAmount();
+    error ErrInvalidPath();
+
     using SafeTransferLib for address;
 
     address public immutable factory;
@@ -15,9 +22,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
     address public immutable WETH;
 
     modifier ensure(uint256 deadline) {
-        if (deadline < block.timestamp) {
-            revert("Router: EXPIRED");
-        }
+        if (deadline < block.timestamp) revert ErrExpired();
         _;
     }
 
@@ -41,16 +46,16 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
             IUniswapV2Factory(factory).createPair(tokenA, tokenB);
             (amountA, amountB) = (amountADesired, amountBDesired);
         } else {
-            (uint256 reserveA, uint256 reserveB) = PairV2Library.getReserves(factory, tokenA, tokenB);
+            (uint256 reserveA, uint256 reserveB) = PairLibrary.getReserves(factory, tokenA, tokenB);
 
-            uint256 amountBOptimal = PairV2Library.quote(amountADesired, reserveA, reserveB);
+            uint256 amountBOptimal = PairLibrary.quote(amountADesired, reserveA, reserveB);
             if (amountBOptimal > amountBDesired) {
-                uint256 amountAOptimal = PairV2Library.quote(amountBDesired, reserveB, reserveA);
+                uint256 amountAOptimal = PairLibrary.quote(amountBDesired, reserveB, reserveA);
                 assert(amountAOptimal <= amountADesired);
-                if (amountAOptimal < amountAMin) revert("Router: INSUFFICIENT_A_AMOUNT");
+                if (amountAOptimal < amountAMin) revert ErrInsufficientAmountA();
                 (amountA, amountB) = (amountAOptimal, amountBDesired);
             } else {
-                if (amountBOptimal < amountBMin) revert("Router: INSUFFICIENT_B_AMOUNT");
+                if (amountBOptimal < amountBMin) revert ErrInsufficientAmountB();
                 (amountA, amountB) = (amountADesired, amountBOptimal);
             }
         }
@@ -67,7 +72,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         uint256 deadline
     ) external ensure(deadline) returns (uint256 amountA, uint256 amountB, uint256 liquidity) {
         (amountA, amountB) = _addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin);
-        address pair = PairV2Library.pairFor(factory, tokenA, tokenB);
+        address pair = PairLibrary.pairFor(factory, tokenA, tokenB);
         SafeTransferLib.safeTransferFrom(tokenA, msg.sender, pair, amountA);
         SafeTransferLib.safeTransferFrom(tokenB, msg.sender, pair, amountB);
         liquidity = PairV2(pair).mint(to);
@@ -83,7 +88,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
     ) external payable ensure(deadline) returns (uint256 amountToken, uint256 amountETH, uint256 liquidity) {
         (amountToken, amountETH) =
             _addLiquidity(token, NATIVO, amountTokenDesired, msg.value, amountTokenMin, amountETHMin);
-        address pair = PairV2Library.pairFor(factory, token, NATIVO);
+        address pair = PairLibrary.pairFor(factory, token, NATIVO);
         token.safeTransferFrom(msg.sender, pair, amountToken);
         INativo(payable(NATIVO)).depositTo{value: amountETH}(pair);
         liquidity = PairV2(pair).mint(to);
@@ -101,13 +106,13 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint256 deadline
     ) public ensure(deadline) returns (uint256 amountA, uint256 amountB) {
-        address pair = PairV2Library.pairFor(factory, tokenA, tokenB);
+        address pair = PairLibrary.pairFor(factory, tokenA, tokenB);
         PairV2(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
         (uint256 amount0, uint256 amount1) = PairV2(pair).burn(to);
-        (address token0,) = PairV2Library.sortTokens(tokenA, tokenB);
+        (address token0,) = PairLibrary.sortTokens(tokenA, tokenB);
         (amountA, amountB) = tokenA == token0 ? (amount0, amount1) : (amount1, amount0);
-        if (amountA < amountAMin) revert("Router: INSUFFICIENT_A_AMOUNT");
-        if (amountB < amountBMin) revert("Router: INSUFFICIENT_B_AMOUNT");
+        if (amountA < amountAMin) revert ErrInsufficientAmountA();
+        if (amountB < amountBMin) revert ErrInsufficientAmountB();
     }
 
     function removeLiquidityETH(
@@ -137,7 +142,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         bytes32 r,
         bytes32 s
     ) external returns (uint256 amountA, uint256 amountB) {
-        address pair = PairV2Library.pairFor(factory, tokenA, tokenB);
+        address pair = PairLibrary.pairFor(factory, tokenA, tokenB);
         uint256 value = approveMax ? type(uint256).max : liquidity;
         PairV2(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         (amountA, amountB) = removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, to, deadline);
@@ -155,7 +160,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         bytes32 r,
         bytes32 s
     ) external returns (uint256 amountToken, uint256 amountETH) {
-        address pair = PairV2Library.pairFor(factory, token, NATIVO);
+        address pair = PairLibrary.pairFor(factory, token, NATIVO);
         uint256 value = approveMax ? type(uint256).max : liquidity;
         PairV2(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         (amountToken, amountETH) = removeLiquidityETH(token, liquidity, amountTokenMin, amountETHMin, to, deadline);
@@ -187,7 +192,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         bytes32 r,
         bytes32 s
     ) external returns (uint256 amountETH) {
-        address pair = PairV2Library.pairFor(factory, token, NATIVO);
+        address pair = PairLibrary.pairFor(factory, token, NATIVO);
         uint256 value = approveMax ? type(uint256).max : liquidity;
         PairV2(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         amountETH = removeLiquidityETHSupportingFeeOnTransferTokens(
@@ -200,14 +205,16 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
     function _swap(uint256[] memory amounts, address[] calldata path, address _to) internal virtual {
         for (uint256 i; i < path.length - 1;) {
             (address input, address output) = (path[i], path[i + 1]);
-            (address token0,) = PairV2Library.sortTokens(input, output);
+            (address token0,) = PairLibrary.sortTokens(input, output);
             uint256 amountOut = amounts[i + 1];
             (uint256 amount0Out, uint256 amount1Out) =
                 input == token0 ? (uint256(0), amountOut) : (amountOut, uint256(0));
-            address to = i < path.length - 2 ? PairV2Library.pairFor(factory, output, path[i + 2]) : _to;
-            PairV2(PairV2Library.pairFor(factory, input, output)).swap(amount0Out, amount1Out, to, "");
+            address to = i < path.length - 2 ? PairLibrary.pairFor(factory, output, path[i + 2]) : _to;
+            PairV2(PairLibrary.pairFor(factory, input, output)).swap(amount0Out, amount1Out, to, "");
 
-            unchecked{ ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -218,10 +225,10 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint256 deadline
     ) external ensure(deadline) returns (uint256[] memory amounts) {
-        amounts = PairV2Library.getAmountsOut(factory, amountIn, path);
-        if (amounts[amounts.length - 1] < amountOutMin) revert("Router: INSUFFICIENT_OUTPUT_AMOUNT");
+        amounts = PairLibrary.getAmountsOut(factory, amountIn, path);
+        if (amounts[amounts.length - 1] < amountOutMin) revert ErrInsufficientOutputAmount();
         SafeTransferLib.safeTransferFrom(
-            path[0], msg.sender, PairV2Library.pairFor(factory, path[0], path[1]), amounts[0]
+            path[0], msg.sender, PairLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
         _swap(amounts, path, to);
     }
@@ -233,10 +240,10 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint256 deadline
     ) external ensure(deadline) returns (uint256[] memory amounts) {
-        amounts = PairV2Library.getAmountsIn(factory, amountOut, path);
-        if (amounts[0] > amountInMax) revert("Router: EXCESSIVE_INPUT_AMOUNT");
+        amounts = PairLibrary.getAmountsIn(factory, amountOut, path);
+        if (amounts[0] <= amountInMax) revert ErrExcessiveInputAmount();
         SafeTransferLib.safeTransferFrom(
-            path[0], msg.sender, PairV2Library.pairFor(factory, path[0], path[1]), amounts[0]
+            path[0], msg.sender, PairLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
         _swap(amounts, path, to);
     }
@@ -249,10 +256,10 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         ensure(deadline)
         returns (uint256[] memory amounts)
     {
-        if (path[0] != NATIVO) revert("Router: INVALID_PATH");
-        amounts = PairV2Library.getAmountsOut(factory, msg.value, path);
-        if (amounts[amounts.length - 1] < amountOutMin) revert("Router: INSUFFICIENT_OUTPUT_AMOUNT");
-        INativo(payable(NATIVO)).depositTo{value: amounts[0]}(PairV2Library.pairFor(factory, path[0], path[1]));
+        if (path[0] != NATIVO) revert ErrInvalidPath();
+        amounts = PairLibrary.getAmountsOut(factory, msg.value, path);
+        if (amounts[amounts.length - 1] < amountOutMin) revert ErrInsufficientOutputAmount();
+        INativo(payable(NATIVO)).depositTo{value: amounts[0]}(PairLibrary.pairFor(factory, path[0], path[1]));
         _swap(amounts, path, to);
     }
 
@@ -263,12 +270,12 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint256 deadline
     ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
-        require(path[path.length - 1] == NATIVO, "Router: INVALID_PATH");
-        amounts = PairV2Library.getAmountsIn(factory, amountOut, path);
+        if (path[path.length - 1] != NATIVO) revert ErrInvalidPath();
+        amounts = PairLibrary.getAmountsIn(factory, amountOut, path);
         // Overall gas change: -261368 (-1.761%)
-        require(amounts[0] <= amountInMax, "Router: EXCESSIVE_INPUT_AMOUNT");
+        if (amounts[0] > amountInMax) revert ErrExcessiveInputAmount();
         SafeTransferLib.safeTransferFrom(
-            path[0], msg.sender, PairV2Library.pairFor(factory, path[0], path[1]), amounts[0]
+            path[0], msg.sender, PairLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
         _swap(amounts, path, address(this));
         INativo(payable(NATIVO)).withdrawTo(to, amounts[amounts.length - 1]);
@@ -281,11 +288,11 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint256 deadline
     ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
-        require(path[path.length - 1] == NATIVO, "Router: INVALID_PATH");
-        amounts = PairV2Library.getAmountsOut(factory, amountIn, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, "Router: INSUFFICIENT_OUTPUT_AMOUNT");
+        if (path[path.length - 1] != NATIVO) revert ErrInvalidPath();
+        amounts = PairLibrary.getAmountsOut(factory, amountIn, path);
+        if (amounts[amounts.length - 1] < amountOutMin) revert ErrInsufficientOutputAmount();
         SafeTransferLib.safeTransferFrom(
-            path[0], msg.sender, PairV2Library.pairFor(factory, path[0], path[1]), amounts[0]
+            path[0], msg.sender, PairLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
         _swap(amounts, path, address(this));
         INativo(payable(NATIVO)).withdrawTo(to, amounts[amounts.length - 1]);
@@ -299,10 +306,10 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         ensure(deadline)
         returns (uint256[] memory amounts)
     {
-        require(path[0] == NATIVO, "Router: INVALID_PATH");
-        amounts = PairV2Library.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= msg.value, "Router: EXCESSIVE_INPUT_AMOUNT");
-        INativo(payable(NATIVO)).depositTo{value: amounts[0]}(PairV2Library.pairFor(factory, path[0], path[1]));
+        if (path[0] != NATIVO) revert ErrInvalidPath();
+        amounts = PairLibrary.getAmountsIn(factory, amountOut, path);
+        if (amounts[0] > msg.value) revert ErrExcessiveInputAmount();
+        INativo(payable(NATIVO)).depositTo{value: amounts[0]}(PairLibrary.pairFor(factory, path[0], path[1]));
         _swap(amounts, path, to);
         // refund dust eth, if any
         if (msg.value > amounts[0]) SafeTransferLib.safeTransferETH(msg.sender, msg.value - amounts[0]);
@@ -317,8 +324,8 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
             unchecked {
                 (input, output) = (path[i], path[i + 1]);
             }
-            (address token0,) = PairV2Library.sortTokens(input, output);
-            PairV2 pair = PairV2(PairV2Library.pairFor(factory, input, output));
+            (address token0,) = PairLibrary.sortTokens(input, output);
+            PairV2 pair = PairV2(PairLibrary.pairFor(factory, input, output));
             uint256 amountInput;
             uint256 amountOutput;
             {
@@ -327,12 +334,12 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
                 (uint256 reserveInput, uint256 reserveOutput) =
                     input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
                 amountInput = input.balanceOf(address(pair)) - (reserveInput);
-                amountOutput = PairV2Library.getAmountOut(amountInput, reserveInput, reserveOutput);
+                amountOutput = PairLibrary.getAmountOut(amountInput, reserveInput, reserveOutput);
             }
             unchecked {
                 (uint256 amount0Out, uint256 amount1Out) =
                     input == token0 ? (uint256(0), amountOutput) : (amountOutput, uint256(0));
-                address to = i < path.length - 2 ? PairV2Library.pairFor(factory, output, path[i + 2]) : _to;
+                address to = i < path.length - 2 ? PairLibrary.pairFor(factory, output, path[i + 2]) : _to;
                 pair.swap(amount0Out, amount1Out, to, "");
                 ++i;
             }
@@ -346,14 +353,10 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint256 deadline
     ) external ensure(deadline) {
-        SafeTransferLib.safeTransferFrom(
-            path[0], msg.sender, PairV2Library.pairFor(factory, path[0], path[1]), amountIn
-        );
+        SafeTransferLib.safeTransferFrom(path[0], msg.sender, PairLibrary.pairFor(factory, path[0], path[1]), amountIn);
         uint256 balanceBefore = path[path.length - 1].balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
-        require(
-            path[path.length - 1].balanceOf(to) - balanceBefore >= amountOutMin, "Router: INSUFFICIENT_OUTPUT_AMOUNT"
-        );
+        if (path[path.length - 1].balanceOf(to) - balanceBefore < amountOutMin) revert ErrInsufficientOutputAmount();
     }
 
     function swapExactETHForTokensSupportingFeeOnTransferTokens(
@@ -362,14 +365,12 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint256 deadline
     ) external payable virtual override ensure(deadline) {
-        require(path[0] == NATIVO, "INVALID_PATH");
+        if (path[0] != NATIVO) revert ErrInvalidPath();
         uint256 amountIn = msg.value;
-        INativo(payable(NATIVO)).depositTo{value: amountIn}(PairV2Library.pairFor(factory, path[0], path[1]));
+        INativo(payable(NATIVO)).depositTo{value: amountIn}(PairLibrary.pairFor(factory, path[0], path[1]));
         uint256 balanceBefore = path[path.length - 1].balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
-        if (path[path.length - 1].balanceOf(to) - balanceBefore < amountOutMin) {
-            revert("INSUFFICIENT_OUTPUT_AMOUNT");
-        }
+        if (path[path.length - 1].balanceOf(to) - balanceBefore < amountOutMin) revert ErrInsufficientOutputAmount();
     }
 
     function swapExactTokensForETHSupportingFeeOnTransferTokens(
@@ -379,19 +380,17 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint256 deadline
     ) external virtual override ensure(deadline) {
-        require(path[path.length - 1] == NATIVO, "Router: INVALID_PATH");
-        SafeTransferLib.safeTransferFrom(
-            path[0], msg.sender, PairV2Library.pairFor(factory, path[0], path[1]), amountIn
-        );
+        if (path[path.length - 1] != NATIVO) revert ErrInvalidPath();
+        SafeTransferLib.safeTransferFrom(path[0], msg.sender, PairLibrary.pairFor(factory, path[0], path[1]), amountIn);
         _swapSupportingFeeOnTransferTokens(path, address(this));
         uint256 amountOut = NATIVO.balanceOf(address(this));
-        require(amountOut >= amountOutMin, "Router: INSUFFICIENT_OUTPUT_AMOUNT");
+        if (amountOut < amountOutMin) revert ErrInsufficientOutputAmount();
         INativo(payable(NATIVO)).withdrawTo(to, amountOut);
     }
 
     // **** LIBRARY FUNCTIONS ****
     function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) external pure returns (uint256 amountB) {
-        return PairV2Library.quote(amountA, reserveA, reserveB);
+        return PairLibrary.quote(amountA, reserveA, reserveB);
     }
 
     function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut)
@@ -401,7 +400,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         override
         returns (uint256 amountOut)
     {
-        return PairV2Library.getAmountOut(amountIn, reserveIn, reserveOut);
+        return PairLibrary.getAmountOut(amountIn, reserveIn, reserveOut);
     }
 
     function getAmountIn(uint256 amountOut, uint256 reserveIn, uint256 reserveOut)
@@ -411,7 +410,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         override
         returns (uint256 amountIn)
     {
-        return PairV2Library.getAmountIn(amountOut, reserveIn, reserveOut);
+        return PairLibrary.getAmountIn(amountOut, reserveIn, reserveOut);
     }
 
     function getAmountsOut(uint256 amountIn, address[] calldata path)
@@ -421,7 +420,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         override
         returns (uint256[] memory amounts)
     {
-        return PairV2Library.getAmountsOut(factory, amountIn, path);
+        return PairLibrary.getAmountsOut(factory, amountIn, path);
     }
 
     function getAmountsIn(uint256 amountOut, address[] calldata path)
@@ -431,6 +430,6 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         override
         returns (uint256[] memory amounts)
     {
-        return PairV2Library.getAmountsIn(factory, amountOut, path);
+        return PairLibrary.getAmountsIn(factory, amountOut, path);
     }
 }

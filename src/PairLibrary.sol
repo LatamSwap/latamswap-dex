@@ -1,11 +1,11 @@
 pragma solidity ^0.8.0;
 
 import {IUniswapV2Pair} from "v2-core/interfaces/IUniswapV2Pair.sol";
-import {Create2} from "openzeppelin/utils/Create2.sol";
+import {CREATE3} from "solady/utils/CREATE3.sol";
 
 import {PairV2} from "./PairV2.sol";
 
-library PairV2Library {
+library PairLibrary {
     error ErrZeroAddress();
     error ErrIdenticalAddress();
     error ErrInsufficientAmount();
@@ -24,11 +24,9 @@ library PairV2Library {
     // calculates the CREATE2 address for a pair without making any external calls
     // @dev token must be sorted!
     function pairFor(address factory, address token0, address token1) internal pure returns (address pair) {
-        (token0, token1) = PairV2Library.sortTokens(token0, token1);
-        bytes memory params = abi.encode(token0, token1);
-        bytes memory bytecode = abi.encodePacked(type(PairV2).creationCode, params);
+        (token0, token1) = PairLibrary.sortTokens(token0, token1);
 
-        pair = Create2.computeAddress(keccak256(params), keccak256(bytecode), factory);
+        pair = CREATE3.getDeployed(keccak256(abi.encodePacked(token0, token1)), factory);
     }
 
     // fetches and sorts the reserves for a pair
@@ -38,7 +36,9 @@ library PairV2Library {
         returns (uint256 reserveA, uint256 reserveB)
     {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
-        (uint112 _reserve0, uint112 _reserve1,) = IUniswapV2Pair(pairFor(factory, token0, token1)).getReserves();
+
+        IUniswapV2Pair pair = IUniswapV2Pair(CREATE3.getDeployed(keccak256(abi.encodePacked(token0, token1)), factory));
+        (uint112 _reserve0, uint112 _reserve1,) = pair.getReserves();
         (reserveA, reserveB) = tokenA == token0 ? (_reserve0, _reserve1) : (_reserve1, _reserve0);
     }
 

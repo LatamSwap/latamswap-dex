@@ -3,9 +3,10 @@ pragma solidity 0.8.20;
 
 import {Ownable} from "solady/auth/Ownable.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
+import {CREATE3} from "solady/utils/CREATE3.sol";
 
 import {PairV2} from "./PairV2.sol";
-import {PairV2Library} from "./PairV2Library.sol";
+import {PairLibrary} from "./PairLibrary.sol";
 
 /**
  * @title LatamswapFactory
@@ -15,6 +16,10 @@ import {PairV2Library} from "./PairV2Library.sol";
  */
 contract LatamswapFactory is Ownable {
     using SafeTransferLib for address;
+
+    error ErrZeroAddress();
+    error ErrIdenticalAddress();
+    error ErrPairExists();
 
     /// @dev Maps tokens to its pair
     mapping(address fromToken => mapping(address toToken => address pair)) public getPair;
@@ -43,16 +48,14 @@ contract LatamswapFactory is Ownable {
      * @notice Tokens must be different and not already have a pair.
      */
     function createPair(address tokenA, address tokenB) external returns (address pair) {
-        require(tokenA != tokenB, "UniswapV2: IDENTICAL_ADDRESSES");
-        (address token0, address token1) = PairV2Library.sortTokens(tokenA, tokenB);
-        require(token0 != address(0), "UniswapV2: ZERO_ADDRESS");
-        require(getPair[token0][token1] == address(0), "UniswapV2: PAIR_EXISTS"); // single check is sufficient
+        if (tokenA == tokenB) revert ErrIdenticalAddress();
+        (address token0, address token1) = PairLibrary.sortTokens(tokenA, tokenB);
+        if (token0 == address(0)) revert ErrZeroAddress();
+        if (getPair[token0][token1] != address(0)) revert ErrPairExists(); // single check is sufficient
 
-        pair = address(
-            new PairV2{
-                salt: keccak256(abi.encodePacked(uint256(uint160(token0)), uint256(uint160(token1))))
-            }(token0, token1)
-        );
+        bytes memory creationCode = abi.encodePacked(type(PairV2).creationCode, abi.encode(tokenA, tokenB));
+
+        pair = CREATE3.deploy(keccak256(abi.encodePacked(tokenA, tokenB)), creationCode, 0);
 
         getPair[token0][token1] = pair;
         getPair[token1][token0] = pair; // populate mapping in the reverse direction
