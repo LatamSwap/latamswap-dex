@@ -37,7 +37,9 @@ library PairV2Library {
         returns (uint256 reserveA, uint256 reserveB)
     {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
-        (uint112 _reserve0, uint112 _reserve1,) = IUniswapV2Pair(pairFor(factory, token0, token1)).getReserves();
+
+        IUniswapV2Pair pair = IUniswapV2Pair(CREATE3.getDeployed(keccak256(abi.encodePacked(token0, token1)), factory));
+        (uint112 _reserve0, uint112 _reserve1,) = pair.getReserves();
         (reserveA, reserveB) = tokenA == token0 ? (_reserve0, _reserve1) : (_reserve1, _reserve0);
     }
 
