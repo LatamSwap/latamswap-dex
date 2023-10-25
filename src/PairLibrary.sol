@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {IUniswapV2Pair} from "v2-core/interfaces/IUniswapV2Pair.sol";
-import {CREATE3} from "src/utils/CREATE3-extrafunction.sol";
+import {CREATE3} from "solady/utils/CREATE3.sol";
 
 import {PairV2} from "./PairV2.sol";
 
