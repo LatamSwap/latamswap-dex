@@ -23,10 +23,10 @@ library PairLibrary {
 
     // calculates the CREATE2 address for a pair without making any external calls
     // @dev token must be sorted!
-    function pairFor(address factory, address token0, address token1) internal pure returns (address pair) {
-        (token0, token1) = PairLibrary.sortTokens(token0, token1);
+    function pairFor(address factory, address tokenA, address tokenB) internal pure returns (address pair) {
+        (tokenA, tokenB) = PairLibrary.sortTokens(tokenA, tokenB);
 
-        pair = CREATE3.getDeployed(keccak256(abi.encodePacked(token0, token1)), factory);
+        pair = CREATE3.getDeployed(keccak256(abi.encodePacked(tokenA, tokenB)), factory);
     }
 
     // fetches and sorts the reserves for a pair
