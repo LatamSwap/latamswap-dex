@@ -171,12 +171,16 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
         if (amount0Out >= _reserve0 || amount1Out >= _reserve1) revert ErrLatamswapInsufficientLiquidity();
 
-        if (to == token0 || to == token1) revert ErrLatamswapInvalidTo();
-        if (amount0Out > 0) token0.safeTransfer(to, amount0Out); // optimistically transfer tokens
-        if (amount1Out > 0) token1.safeTransfer(to, amount1Out); // optimistically transfer tokens
-        if (data.length > 0) IUniswapV2Callee(to).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
-        uint256 balance0 = token0.balanceOf(address(this));
-        uint256 balance1 = token1.balanceOf(address(this));
+        uint256 balance0;
+        uint256 balance1;
+        {
+            if (to == token0 || to == token1) revert ErrLatamswapInvalidTo();
+            if (amount0Out > 0) token0.safeTransfer(to, amount0Out); // optimistically transfer tokens
+            if (amount1Out > 0) token1.safeTransfer(to, amount1Out); // optimistically transfer tokens
+            if (data.length > 0) IUniswapV2Callee(to).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
+            balance0 = token0.balanceOf(address(this));
+            balance1 = token1.balanceOf(address(this));
+        }
 
         uint256 amount0In;
         uint256 amount1In;
