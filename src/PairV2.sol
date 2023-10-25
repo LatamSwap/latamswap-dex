@@ -161,7 +161,6 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
 
         _update(balance0, balance1, _reserve0, _reserve1);
         kLast = uint256(reserve0) * uint256(reserve1); // reserve0 and reserve1 are up-to-date
-
         emit Burn(msg.sender, amount0, amount1, to);
     }
 
