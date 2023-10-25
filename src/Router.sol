@@ -2,19 +2,12 @@ pragma solidity 0.8.20;
 
 import {IUniswapV2Factory} from "v2-core/interfaces/IUniswapV2Factory.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
-import {IUniswapV2Router02} from "./interfaces/IUniswapV2Router02.sol";
+import {ILatamSwapRouter} from "./interfaces/ILatamSwapRouter.sol";
 import {PairLibrary} from "./PairLibrary.sol";
 import {PairV2} from "./PairV2.sol";
 import {INativo} from "nativo/INativo.sol";
 
-contract LatamswapRouter is IUniswapV2Router02 {
-    error ErrExpired();
-    error ErrInsufficientQuoteA();
-    error ErrInsufficientAmountA();
-    error ErrInsufficientAmountB();
-    error ErrInsufficientOutputAmount();
-    error ErrExcessiveInputAmount();
-    error ErrInvalidPath();
+contract LatamswapRouter is ILatamSwapRouter {
 
     using SafeTransferLib for address;
 
