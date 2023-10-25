@@ -50,7 +50,7 @@ contract LatamswapFactory is Ownable {
 
         pair = address(
             new PairV2{
-                salt: keccak256(abi.encodePacked(uint256(uint160(token0)), uint256(uint160(token1))))
+                salt: keccak256(abi.encode(token0, token1))
             }(token0, token1)
         );
 
