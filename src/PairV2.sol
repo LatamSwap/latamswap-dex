@@ -8,8 +8,9 @@ import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 import {IUniswapV2Callee} from "v2-core/interfaces/IUniswapV2Callee.sol";
 import {ERC20} from "solady/tokens/ERC20.sol";
 import {ERC1363} from "./ERC1363.sol";
+import {IPairLatamSwap} from "./interfaces/IPairLatamSwap.sol";
 
-contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
+contract PairV2 is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
     using SafeTransferLib for address;
     using UQ112x112 for uint224;
 
@@ -41,26 +42,6 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         _reserve1 = reserve1;
         _blockTimestampLast = blockTimestampLast;
     }
-
-    event Mint(address indexed sender, uint256 amount0, uint256 amount1);
-    event Burn(address indexed sender, uint256 amount0, uint256 amount1, address indexed to);
-    event Swap(
-        address indexed sender,
-        uint256 amount0In,
-        uint256 amount1In,
-        uint256 amount0Out,
-        uint256 amount1Out,
-        address indexed to
-    );
-    event Sync(uint112 reserve0, uint112 reserve1);
-
-    error ErrLatamswapWrongK();
-    error ErrLatamswapOverflow();
-    error ErrLatamswapInsufficientLiquidity();
-    error ErrLatamswapInsufficientLiquidityBurned();
-    error ErrLatamswapInsufficientOutputAmount();
-    error ErrLatamswapInvalidTo();
-    error ErrLatamswapInsufficientInputAmount();
 
     constructor(address _token0, address _token1) {
         factory = msg.sender;
