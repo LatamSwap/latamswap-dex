@@ -8,6 +8,13 @@ import {PairV2} from "./PairV2.sol";
 import {INativo} from "nativo/INativo.sol";
 
 contract LatamswapV2Router02 is IUniswapV2Router02 {
+    error ErrExpired();
+    error ErrInsufficientAmountA();
+    error ErrInsufficientAmountB();
+    error ErrInsufficientOutputAmount();
+    error ErrExcessiveInputAmount();
+    error ErrInvalidPath();
+
     using SafeTransferLib for address;
 
     address public immutable factory;
@@ -15,9 +22,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
     address public immutable WETH;
 
     modifier ensure(uint256 deadline) {
-        if (deadline < block.timestamp) {
-            revert("Router: EXPIRED");
-        }
+        if (deadline < block.timestamp) revert ErrExpired();
         _;
     }
 
@@ -47,10 +52,10 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
             if (amountBOptimal > amountBDesired) {
                 uint256 amountAOptimal = PairV2Library.quote(amountBDesired, reserveB, reserveA);
                 assert(amountAOptimal <= amountADesired);
-                if (amountAOptimal < amountAMin) revert("Router: INSUFFICIENT_A_AMOUNT");
+                if (amountAOptimal < amountAMin) revert ErrInsufficientAmountA();
                 (amountA, amountB) = (amountAOptimal, amountBDesired);
             } else {
-                if (amountBOptimal < amountBMin) revert("Router: INSUFFICIENT_B_AMOUNT");
+                if (amountBOptimal < amountBMin) revert ErrInsufficientAmountB();
                 (amountA, amountB) = (amountADesired, amountBOptimal);
             }
         }
@@ -106,8 +111,8 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         (uint256 amount0, uint256 amount1) = PairV2(pair).burn(to);
         (address token0,) = PairV2Library.sortTokens(tokenA, tokenB);
         (amountA, amountB) = tokenA == token0 ? (amount0, amount1) : (amount1, amount0);
-        if (amountA < amountAMin) revert("Router: INSUFFICIENT_A_AMOUNT");
-        if (amountB < amountBMin) revert("Router: INSUFFICIENT_B_AMOUNT");
+        if (amountA < amountAMin) revert ErrInsufficientAmountA();
+        if (amountB < amountBMin) revert ErrInsufficientAmountB();
     }
 
     function removeLiquidityETH(
@@ -219,7 +224,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         uint256 deadline
     ) external ensure(deadline) returns (uint256[] memory amounts) {
         amounts = PairV2Library.getAmountsOut(factory, amountIn, path);
-        if (amounts[amounts.length - 1] < amountOutMin) revert("Router: INSUFFICIENT_OUTPUT_AMOUNT");
+        if (amounts[amounts.length - 1] < amountOutMin) revert ErrInsufficientOutputAmount();
         SafeTransferLib.safeTransferFrom(
             path[0], msg.sender, PairV2Library.pairFor(factory, path[0], path[1]), amounts[0]
         );
@@ -234,7 +239,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         uint256 deadline
     ) external ensure(deadline) returns (uint256[] memory amounts) {
         amounts = PairV2Library.getAmountsIn(factory, amountOut, path);
-        if (amounts[0] > amountInMax) revert("Router: EXCESSIVE_INPUT_AMOUNT");
+        if (amounts[0] <= amountInMax) revert ErrExcessiveInputAmount();
         SafeTransferLib.safeTransferFrom(
             path[0], msg.sender, PairV2Library.pairFor(factory, path[0], path[1]), amounts[0]
         );
@@ -249,9 +254,9 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         ensure(deadline)
         returns (uint256[] memory amounts)
     {
-        if (path[0] != NATIVO) revert("Router: INVALID_PATH");
+        if (path[0] != NATIVO) revert ErrInvalidPath();
         amounts = PairV2Library.getAmountsOut(factory, msg.value, path);
-        if (amounts[amounts.length - 1] < amountOutMin) revert("Router: INSUFFICIENT_OUTPUT_AMOUNT");
+        if (amounts[amounts.length - 1] < amountOutMin) revert ErrInsufficientOutputAmount();
         INativo(payable(NATIVO)).depositTo{value: amounts[0]}(PairV2Library.pairFor(factory, path[0], path[1]));
         _swap(amounts, path, to);
     }
@@ -263,10 +268,10 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint256 deadline
     ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
-        require(path[path.length - 1] == NATIVO, "Router: INVALID_PATH");
+        if (path[path.length - 1] != NATIVO) revert ErrInvalidPath();
         amounts = PairV2Library.getAmountsIn(factory, amountOut, path);
         // Overall gas change: -261368 (-1.761%)
-        require(amounts[0] <= amountInMax, "Router: EXCESSIVE_INPUT_AMOUNT");
+        if (amounts[0] > amountInMax) revert ErrExcessiveInputAmount();
         SafeTransferLib.safeTransferFrom(
             path[0], msg.sender, PairV2Library.pairFor(factory, path[0], path[1]), amounts[0]
         );
@@ -281,9 +286,9 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint256 deadline
     ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
-        require(path[path.length - 1] == NATIVO, "Router: INVALID_PATH");
+        if (path[path.length - 1] != NATIVO) revert ErrInvalidPath();
         amounts = PairV2Library.getAmountsOut(factory, amountIn, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, "Router: INSUFFICIENT_OUTPUT_AMOUNT");
+        if (amounts[amounts.length - 1] < amountOutMin) revert ErrInsufficientOutputAmount();
         SafeTransferLib.safeTransferFrom(
             path[0], msg.sender, PairV2Library.pairFor(factory, path[0], path[1]), amounts[0]
         );
@@ -299,9 +304,9 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         ensure(deadline)
         returns (uint256[] memory amounts)
     {
-        require(path[0] == NATIVO, "Router: INVALID_PATH");
+        if (path[0] != NATIVO) revert ErrInvalidPath();
         amounts = PairV2Library.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= msg.value, "Router: EXCESSIVE_INPUT_AMOUNT");
+        if (amounts[0] > msg.value) revert ErrExcessiveInputAmount();
         INativo(payable(NATIVO)).depositTo{value: amounts[0]}(PairV2Library.pairFor(factory, path[0], path[1]));
         _swap(amounts, path, to);
         // refund dust eth, if any
@@ -351,9 +356,7 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         );
         uint256 balanceBefore = path[path.length - 1].balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
-        require(
-            path[path.length - 1].balanceOf(to) - balanceBefore >= amountOutMin, "Router: INSUFFICIENT_OUTPUT_AMOUNT"
-        );
+        if (path[path.length - 1].balanceOf(to) - balanceBefore < amountOutMin) revert ErrInsufficientOutputAmount();
     }
 
     function swapExactETHForTokensSupportingFeeOnTransferTokens(
@@ -362,14 +365,12 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint256 deadline
     ) external payable virtual override ensure(deadline) {
-        require(path[0] == NATIVO, "INVALID_PATH");
+        if (path[0] != NATIVO) revert ErrInvalidPath();
         uint256 amountIn = msg.value;
         INativo(payable(NATIVO)).depositTo{value: amountIn}(PairV2Library.pairFor(factory, path[0], path[1]));
         uint256 balanceBefore = path[path.length - 1].balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
-        if (path[path.length - 1].balanceOf(to) - balanceBefore < amountOutMin) {
-            revert("INSUFFICIENT_OUTPUT_AMOUNT");
-        }
+        if (path[path.length - 1].balanceOf(to) - balanceBefore < amountOutMin) revert ErrInsufficientOutputAmount();
     }
 
     function swapExactTokensForETHSupportingFeeOnTransferTokens(
@@ -379,13 +380,13 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint256 deadline
     ) external virtual override ensure(deadline) {
-        require(path[path.length - 1] == NATIVO, "Router: INVALID_PATH");
+        if (path[path.length - 1] != NATIVO) revert ErrInvalidPath();
         SafeTransferLib.safeTransferFrom(
             path[0], msg.sender, PairV2Library.pairFor(factory, path[0], path[1]), amountIn
         );
         _swapSupportingFeeOnTransferTokens(path, address(this));
         uint256 amountOut = NATIVO.balanceOf(address(this));
-        require(amountOut >= amountOutMin, "Router: INSUFFICIENT_OUTPUT_AMOUNT");
+        if (amountOut < amountOutMin) revert ErrInsufficientOutputAmount();
         INativo(payable(NATIVO)).withdrawTo(to, amountOut);
     }
 
