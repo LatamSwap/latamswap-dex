@@ -53,9 +53,9 @@ contract LatamswapFactory is Ownable {
         if (token0 == address(0)) revert ErrZeroAddress();
         if (getPair[token0][token1] != address(0)) revert ErrPairExists(); // single check is sufficient
 
-        bytes memory creationCode = abi.encodePacked(type(PairV2).creationCode, abi.encode(tokenA, tokenB));
+        bytes memory creationCode = abi.encodePacked(type(PairV2).creationCode, abi.encode(token0, token1));
 
-        pair = CREATE3.deploy(keccak256(abi.encodePacked(tokenA, tokenB)), creationCode, 0);
+        pair = CREATE3.deploy(keccak256(abi.encodePacked(token0, token1)), creationCode, 0);
 
         getPair[token0][token1] = pair;
         getPair[token1][token0] = pair; // populate mapping in the reverse direction
