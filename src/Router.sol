@@ -9,6 +9,7 @@ import {INativo} from "nativo/INativo.sol";
 
 contract LatamswapRouter is IUniswapV2Router02 {
     error ErrExpired();
+    error ErrInsufficientQuoteA();
     error ErrInsufficientAmountA();
     error ErrInsufficientAmountB();
     error ErrInsufficientOutputAmount();
@@ -51,7 +52,7 @@ contract LatamswapRouter is IUniswapV2Router02 {
             uint256 amountBOptimal = PairLibrary.quote(amountADesired, reserveA, reserveB);
             if (amountBOptimal > amountBDesired) {
                 uint256 amountAOptimal = PairLibrary.quote(amountBDesired, reserveB, reserveA);
-                assert(amountAOptimal <= amountADesired);
+                if (amountAOptimal > amountADesired) revert ErrInsufficientQuoteA();
                 if (amountAOptimal < amountAMin) revert ErrInsufficientAmountA();
                 (amountA, amountB) = (amountAOptimal, amountBDesired);
             } else {
