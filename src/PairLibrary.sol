@@ -5,7 +5,7 @@ import {CREATE3} from "src/utils/CREATE3-extrafunction.sol";
 
 import {PairV2} from "./PairV2.sol";
 
-library PairV2Library {
+library PairLibrary {
     error ErrZeroAddress();
     error ErrIdenticalAddress();
     error ErrInsufficientAmount();
@@ -24,7 +24,7 @@ library PairV2Library {
     // calculates the CREATE2 address for a pair without making any external calls
     // @dev token must be sorted!
     function pairFor(address factory, address token0, address token1) internal pure returns (address pair) {
-        (token0, token1) = PairV2Library.sortTokens(token0, token1);
+        (token0, token1) = PairLibrary.sortTokens(token0, token1);
 
         pair = CREATE3.getDeployed(keccak256(abi.encodePacked(token0, token1)), factory);
     }

@@ -7,7 +7,7 @@ import "./helper/BasePairTest.sol";
 
 import {IUniswapV2Pair} from "v2-core/interfaces/IUniswapV2Pair.sol";
 import {PairV2} from "src/PairV2.sol";
-import {PairV2Library} from "src/PairV2Library.sol";
+import {PairLibrary} from "src/PairLibrary.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 
@@ -47,14 +47,14 @@ contract PairV2Test is Test {
     function setUp() public {
         tokenA = new MockERC20("Token A", "tknA", 18);
         tokenB = new MockERC20("Token B", "tknB", 18);
-        (token0, token1) = PairV2Library.sortTokens(address(tokenA), address(tokenB));
+        (token0, token1) = PairLibrary.sortTokens(address(tokenA), address(tokenB));
 
         tokenA.mint(address(this), 1001 ether);
         tokenB.mint(address(this), 1001 ether);
 
         unitokenA = new MockERC20("Token A", "tknA", 18);
         unitokenB = new MockERC20("Token B", "tknB", 18);
-        (unitoken0, unitoken1) = PairV2Library.sortTokens(address(unitokenA), address(unitokenB));
+        (unitoken0, unitoken1) = PairLibrary.sortTokens(address(unitokenA), address(unitokenB));
 
         unitokenA.mint(address(this), 1001 ether);
         unitokenB.mint(address(this), 1001 ether);

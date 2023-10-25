@@ -6,7 +6,7 @@ import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {CREATE3} from "solady/utils/CREATE3.sol";
 
 import {PairV2} from "./PairV2.sol";
-import {PairV2Library} from "./PairV2Library.sol";
+import {PairLibrary} from "./PairLibrary.sol";
 
 /**
  * @title LatamswapFactory
@@ -49,7 +49,7 @@ contract LatamswapFactory is Ownable {
      */
     function createPair(address tokenA, address tokenB) external returns (address pair) {
         if (tokenA == tokenB) revert ErrIdenticalAddress();
-        (address token0, address token1) = PairV2Library.sortTokens(tokenA, tokenB);
+        (address token0, address token1) = PairLibrary.sortTokens(tokenA, tokenB);
         if (token0 == address(0)) revert ErrZeroAddress();
         if (getPair[token0][token1] != address(0)) revert ErrPairExists(); // single check is sufficient
 

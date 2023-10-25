@@ -14,7 +14,7 @@ import {Nativo} from "nativo/Nativo.sol";
 // Pair factory and Pair
 import {LatamswapFactory} from "src/Factory.sol";
 import {PairV2} from "src/PairV2.sol";
-import {PairV2Library} from "src/PairV2Library.sol";
+import {PairLibrary} from "src/PairLibrary.sol";
 // Routerss
 import {LatamswapV2Router02} from "src/Router.sol";
 
@@ -547,7 +547,7 @@ contract TestCore is Test {
 
         testStablePair.getReserves();
         (uint256 reserveABefore, uint256 reserveBBefore) =
-            PairV2Library.getReserves(address(testFactory), address(usdc), address(usdt));
+            PairLibrary.getReserves(address(testFactory), address(usdc), address(usdt));
         console.log("RESERVE A BEFORE: %s", reserveABefore);
         console.log("RESERVE B BEFORE: %s", reserveBBefore);
         uint256 kBefore = reserveABefore * reserveBBefore;
@@ -573,7 +573,7 @@ contract TestCore is Test {
             uint256 userBalAfter1 = ERC20(path[0]).balanceOf(address(this));
             uint256 userBalAfter2 = ERC20(path[1]).balanceOf(address(this));
             (uint256 reserveAAfter, uint256 reserveBAfter) =
-                PairV2Library.getReserves(address(testFactory), address(usdc), address(usdt));
+                PairLibrary.getReserves(address(testFactory), address(usdc), address(usdt));
             uint256 kAfter = reserveAAfter * reserveBAfter;
 
             assertGe(kAfter, kBefore, "K CHECK");
@@ -609,7 +609,7 @@ contract TestCore is Test {
         require(userBalBefore1 > 0, "NO BAL");
 
         (uint256 reserveABefore, uint256 reserveBBefore) =
-            PairV2Library.getReserves(address(testFactory), address(usdc), address(weth));
+            PairLibrary.getReserves(address(testFactory), address(usdc), address(weth));
         uint256 kBefore = reserveABefore * reserveBBefore;
 
         // ACTION:
@@ -618,7 +618,7 @@ contract TestCore is Test {
             uint256 userBalAfter1 = weth.balanceOf(address(this));
             uint256 userBalAfter2 = ERC20(path[1]).balanceOf(address(this));
             (uint256 reserveAAfter, uint256 reserveBAfter) =
-                PairV2Library.getReserves(address(testFactory), address(usdc), address(weth));
+                PairLibrary.getReserves(address(testFactory), address(usdc), address(weth));
             uint256 kAfter = reserveAAfter * reserveBAfter;
 
             assertGe(kAfter, kBefore, "K CHECK");
@@ -654,7 +654,7 @@ contract TestCore is Test {
         require(userBalBefore1 > 0, "NO BAL");
 
         (uint256 reserveABefore, uint256 reserveBBefore) =
-            PairV2Library.getReserves(address(testFactory), address(usdc), address(weth));
+            PairLibrary.getReserves(address(testFactory), address(usdc), address(weth));
         uint256 kBefore = reserveABefore * reserveBBefore;
 
         // ACTION:
@@ -663,7 +663,7 @@ contract TestCore is Test {
             uint256 userBalAfter1 = ERC20(path[0]).balanceOf(address(this));
             uint256 userBalAfter2 = ERC20(path[1]).balanceOf(address(this));
             (uint256 reserveAAfter, uint256 reserveBAfter) =
-                PairV2Library.getReserves(address(testFactory), address(usdc), address(weth));
+                PairLibrary.getReserves(address(testFactory), address(usdc), address(weth));
             uint256 kAfter = reserveAAfter * reserveBAfter;
 
             assertGe(kAfter, kBefore, "K CHECK");
@@ -699,7 +699,7 @@ contract TestCore is Test {
         require(userBalBefore1 > 0, "NO BAL");
 
         (uint256 reserveABefore, uint256 reserveBBefore) =
-            PairV2Library.getReserves(address(testFactory), address(usdc), address(weth));
+            PairLibrary.getReserves(address(testFactory), address(usdc), address(weth));
         uint256 kBefore = reserveABefore * reserveBBefore;
 
         // ACTION:
@@ -708,7 +708,7 @@ contract TestCore is Test {
             uint256 userBalAfter1 = ERC20(path[0]).balanceOf(address(this));
             uint256 userBalAfter2 = ERC20(path[1]).balanceOf(address(this));
             (uint256 reserveAAfter, uint256 reserveBAfter) =
-                PairV2Library.getReserves(address(testFactory), address(usdc), address(weth));
+                PairLibrary.getReserves(address(testFactory), address(usdc), address(weth));
             uint256 kAfter = reserveAAfter * reserveBAfter;
 
             assertGe(kAfter, kBefore, "K CHECK");
@@ -744,7 +744,7 @@ contract TestCore is Test {
         require(userBalBefore1 > 0, "NO BAL");
 
         (uint256 reserveABefore, uint256 reserveBBefore) =
-            PairV2Library.getReserves(address(testFactory), address(usdc), address(weth));
+            PairLibrary.getReserves(address(testFactory), address(usdc), address(weth));
         uint256 kBefore = reserveABefore * reserveBBefore;
 
         // ACTION:
@@ -753,7 +753,7 @@ contract TestCore is Test {
             uint256 userBalAfter1 = weth.balanceOf(address(this));
             uint256 userBalAfter2 = ERC20(path[1]).balanceOf(address(this));
             (uint256 reserveAAfter, uint256 reserveBAfter) =
-                PairV2Library.getReserves(address(testFactory), address(usdc), address(weth));
+                PairLibrary.getReserves(address(testFactory), address(usdc), address(weth));
             uint256 kAfter = reserveAAfter * reserveBAfter;
 
             assertGe(kAfter, kBefore, "K CHECK");
@@ -773,7 +773,7 @@ contract TestCore is Test {
         uint256 burnAmount = _amount / 100;
 
         (uint256 reserveABefore, uint256 reserveBBefore) =
-            PairV2Library.getReserves(address(testFactory), address(usdc), address(feeToken));
+            PairLibrary.getReserves(address(testFactory), address(usdc), address(feeToken));
         uint256 kBefore = reserveABefore * reserveBBefore;
 
         if (!setFee) {
@@ -797,7 +797,7 @@ contract TestCore is Test {
             uint256 userBalAfter1 = ERC20(path[0]).balanceOf(address(this));
             uint256 userBalAfter2 = ERC20(path[1]).balanceOf(address(this));
             (uint256 reserveAAfter, uint256 reserveBAfter) =
-                PairV2Library.getReserves(address(testFactory), address(usdc), address(feeToken));
+                PairLibrary.getReserves(address(testFactory), address(usdc), address(feeToken));
             uint256 kAfter = reserveAAfter * reserveBAfter;
 
             assertGe(kAfter, kBefore, "K CHECK");
@@ -817,7 +817,7 @@ contract TestCore is Test {
         uint256 burnAmount = _amount / 100;
 
         (uint256 reserveABefore, uint256 reserveBBefore) =
-            PairV2Library.getReserves(address(testFactory), address(weth), address(feeToken));
+            PairLibrary.getReserves(address(testFactory), address(weth), address(feeToken));
         uint256 kBefore = reserveABefore * reserveBBefore;
 
         if (!setETHFee) {
@@ -845,7 +845,7 @@ contract TestCore is Test {
             uint256 userBalAfter1 = ERC20(path[0]).balanceOf(address(this));
             uint256 userBalAfter2 = ERC20(path[1]).balanceOf(address(this));
             (uint256 reserveAAfter, uint256 reserveBAfter) =
-                PairV2Library.getReserves(address(testFactory), address(usdc), address(feeToken));
+                PairLibrary.getReserves(address(testFactory), address(usdc), address(feeToken));
             uint256 kAfter = reserveAAfter * reserveBAfter;
 
             assertGe(kAfter, kBefore, "K CHECK");
@@ -865,7 +865,7 @@ contract TestCore is Test {
         uint256 burnAmount = _amount / 100;
 
         (uint256 reserveABefore, uint256 reserveBBefore) =
-            PairV2Library.getReserves(address(testFactory), address(weth), address(feeToken));
+            PairLibrary.getReserves(address(testFactory), address(weth), address(feeToken));
         uint256 kBefore = reserveABefore * reserveBBefore;
 
         if (!setETHFee) {
@@ -892,7 +892,7 @@ contract TestCore is Test {
             uint256 userBalAfter1 = ERC20(path[0]).balanceOf(address(this));
             uint256 userBalAfter2 = ERC20(path[1]).balanceOf(address(this));
             (uint256 reserveAAfter, uint256 reserveBAfter) =
-                PairV2Library.getReserves(address(testFactory), address(usdc), address(feeToken));
+                PairLibrary.getReserves(address(testFactory), address(usdc), address(feeToken));
             uint256 kAfter = reserveAAfter * reserveBAfter;
 
             assertGe(kAfter, kBefore, "K CHECK");
