@@ -123,7 +123,9 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
             if (liquidity <= MINIMUM_LIQUIDITY) {
                 revert ErrLatamswapInsufficientLiquidity();
             }
-            liquidity -= MINIMUM_LIQUIDITY;
+            unchecked { // Previous if checks the overflow
+                liquidity -= MINIMUM_LIQUIDITY;
+            }
             _mint(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
         } else {
             liquidity =
@@ -135,7 +137,9 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         _mint(to, liquidity);
 
         _update(balance0, balance1, _reserve0, _reserve1);
-        kLast = uint256(reserve0) * uint256(reserve1); // reserve0 and reserve1 are up-to-date
+        unchecked { // type(uint112).max * type(uint112).max < type(uint256).max, can't overflow
+            kLast = uint256(reserve0) * uint256(reserve1); // reserve0 and reserve1 are up-to-date
+        }
         emit Mint(msg.sender, amount0, amount1);
     }
 
@@ -158,7 +162,10 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         balance1 = token1.balanceOf(address(this));
 
         _update(balance0, balance1, _reserve0, _reserve1);
-        kLast = uint256(reserve0) * uint256(reserve1); // reserve0 and reserve1 are up-to-date
+        unchecked { // type(uint112).max * type(uint112).max < type(uint256).max, can't overflow
+            kLast = uint256(reserve0) * uint256(reserve1); // reserve0 and reserve1 are up-to-date
+        }
+
         emit Burn(msg.sender, amount0, amount1, to);
     }
 
