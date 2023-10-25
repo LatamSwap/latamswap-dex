@@ -122,7 +122,7 @@ contract LatamswapRouter is IUniswapV2Router02 {
         uint256 amountETHMin,
         address to,
         uint256 deadline
-    ) public ensure(deadline) returns (uint256 amountToken, uint256 amountETH) {
+    ) public returns (uint256 amountToken, uint256 amountETH) {
         (amountToken, amountETH) =
             removeLiquidity(token, NATIVO, liquidity, amountTokenMin, amountETHMin, address(this), deadline);
         SafeTransferLib.safeTransfer(token, to, amountToken);
@@ -174,7 +174,7 @@ contract LatamswapRouter is IUniswapV2Router02 {
         uint256 amountETHMin,
         address to,
         uint256 deadline
-    ) public ensure(deadline) returns (uint256 amountETH) {
+    ) public returns (uint256 amountETH) {
         (, amountETH) = removeLiquidity(token, NATIVO, liquidity, amountTokenMin, amountETHMin, address(this), deadline);
         SafeTransferLib.safeTransfer(token, to, token.balanceOf(address(this)));
         INativo(payable(NATIVO)).withdrawTo(to, amountETH);
