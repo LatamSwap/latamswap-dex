@@ -104,7 +104,9 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
         if (_totalSupply == 0) {
             liquidity = FixedPointMathLib.sqrt(amount0 * amount1);
             if (liquidity <= MINIMUM_LIQUIDITY) revert ErrLatamswapInsufficientLiquidity();
-            liquidity -= MINIMUM_LIQUIDITY;
+            unchecked { // Previous if checks the overflow
+                liquidity -= MINIMUM_LIQUIDITY;
+            }
             _mint(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
         } else {
             liquidity = FixedPointMathLib.min(amount0 * _totalSupply / _reserve0, amount1 * _totalSupply / _reserve1);
