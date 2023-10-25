@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 import {Ownable} from "solady/auth/Ownable.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
-import {CREATE3} from "solmate/utils/CREATE3.sol";
+import {CREATE3} from "solady/utils/CREATE3.sol";
 
 import {PairV2} from "./PairV2.sol";
 import {PairV2Library} from "./PairV2Library.sol";
