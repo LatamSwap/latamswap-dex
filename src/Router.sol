@@ -241,7 +241,7 @@ contract LatamswapRouter is IUniswapV2Router02 {
         uint256 deadline
     ) external ensure(deadline) returns (uint256[] memory amounts) {
         amounts = PairLibrary.getAmountsIn(factory, amountOut, path);
-        if (amounts[0] <= amountInMax) revert ErrExcessiveInputAmount();
+        if (amounts[0] > amountInMax) revert ErrExcessiveInputAmount();
         SafeTransferLib.safeTransferFrom(
             path[0], msg.sender, PairLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
