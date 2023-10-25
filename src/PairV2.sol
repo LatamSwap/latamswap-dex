@@ -118,14 +118,12 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         _mintFee(_reserve0, _reserve1);
         uint256 _totalSupply = totalSupply(); // gas savings, must be defined here since totalSupply can update in _mintFee
         if (_totalSupply == 0) {
-
             liquidity = FixedPointMathLib.sqrt(amount0 * amount1);
             if (liquidity <= MINIMUM_LIQUIDITY) revert ErrLatamswapInsufficientLiquidity();
             liquidity -= MINIMUM_LIQUIDITY;
             _mint(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
         } else {
-            liquidity =
-                FixedPointMathLib.min(amount0 * _totalSupply / _reserve0, amount1 * _totalSupply / _reserve1);
+            liquidity = FixedPointMathLib.min(amount0 * _totalSupply / _reserve0, amount1 * _totalSupply / _reserve1);
         }
 
         if (liquidity == 0) revert ErrLatamswapInsufficientLiquidity();
@@ -148,10 +146,10 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
         uint256 _totalSupply = totalSupply(); // gas savings, must be defined here since totalSupply can update in _mintFee
         amount0 = liquidity * balance0; // using balances ensures pro-rata distribution
         amount1 = liquidity * balance1; // using balances ensures pro-rata distribution
-        unchecked{
+        unchecked {
             amount0 = amount0 / _totalSupply;
-            amount1 = amount1 / _totalSupply; 
-        } 
+            amount1 = amount1 / _totalSupply;
+        }
         if (amount0 == 0 || amount1 == 0) revert ErrLatamswapInsufficientLiquidityBurned();
         _burn(address(this), liquidity);
         token0.safeTransfer(to, amount0);

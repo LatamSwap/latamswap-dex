@@ -212,7 +212,9 @@ contract LatamswapV2Router02 is IUniswapV2Router02 {
             address to = i < path.length - 2 ? PairV2Library.pairFor(factory, output, path[i + 2]) : _to;
             PairV2(PairV2Library.pairFor(factory, input, output)).swap(amount0Out, amount1Out, to, "");
 
-            unchecked{ ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
