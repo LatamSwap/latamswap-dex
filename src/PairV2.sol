@@ -193,7 +193,7 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
             uint256 balance0Adjusted = balance0 * 1_000 - (amount0In * 3);
             uint256 balance1Adjusted = balance1 * 1_000 - (amount1In * 3);
 
-            if ((balance0Adjusted * balance1Adjusted) < (uint256(_reserve0) * _reserve1 * 1_000_000)) {
+            if ((balance0Adjusted * balance1Adjusted) < (uint256(_reserve0) * uint256(_reserve1) * 1_000_000)) {
                 revert ErrLatamswapWrongK();
             }
         }
