@@ -21,8 +21,7 @@ library PairLibrary {
         if (token0 == address(0)) revert ErrZeroAddress();
     }
 
-    // calculates the CREATE2 address for a pair without making any external calls
-    // @dev token must be sorted!
+    // calculates the CREATE3 address for a pair without making any external calls
     function pairFor(address factory, address tokenA, address tokenB) internal pure returns (address pair) {
         (tokenA, tokenB) = PairLibrary.sortTokens(tokenA, tokenB);
 
