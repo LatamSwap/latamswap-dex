@@ -7,7 +7,7 @@ import {PairLibrary} from "./PairLibrary.sol";
 import {PairV2} from "./PairV2.sol";
 import {INativo} from "nativo/INativo.sol";
 
-contract LatamswapV2Router02 is IUniswapV2Router02 {
+contract LatamswapRouter is IUniswapV2Router02 {
     error ErrExpired();
     error ErrInsufficientAmountA();
     error ErrInsufficientAmountB();

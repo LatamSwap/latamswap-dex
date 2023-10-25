@@ -16,7 +16,7 @@ import {LatamswapFactory} from "src/Factory.sol";
 import {PairV2} from "src/PairV2.sol";
 import {PairLibrary} from "src/PairLibrary.sol";
 // Routerss
-import {LatamswapV2Router02} from "src/Router.sol";
+import {LatamswapRouter} from "src/Router.sol";
 
 contract TestCore is Test {
     uint256 MAX = type(uint256).max;
@@ -40,8 +40,7 @@ contract TestCore is Test {
     PairV2 testFeeNativoPair;
 
     // Routers
-    //UniswapV2Router01 testRouter01;
-    LatamswapV2Router02 testRouter02;
+    LatamswapRouter testRouter02;
 
     address owner;
     uint256 privateKey;
@@ -93,7 +92,7 @@ contract TestCore is Test {
         vm.label(address(testFeeWethPair), "FEE_PAIR");
 
         // Deploy Router
-        testRouter02 = new LatamswapV2Router02(address(testFactory), address(nativo));
+        testRouter02 = new LatamswapRouter(address(testFactory), address(nativo));
         vm.label(address(testRouter02), "ROUTER");
 
         // Approve Router

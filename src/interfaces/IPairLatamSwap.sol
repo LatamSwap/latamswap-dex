@@ -12,7 +12,6 @@ interface IPairLatamSwap {
     function price1CumulativeLast() external view returns (uint256 price1CumulativeLast);
     function kLast() external view returns (uint256 kLast);
 
-
     function getReserves() external view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast);
 
     event Mint(address indexed sender, uint256 amount0, uint256 amount1);
