@@ -74,6 +74,9 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
             revert ErrLatamswapOverflow();
         }
 
+        uint112 _balance0 = uint112(balance0); // gas savings
+        uint112 _balance1 = uint112(balance1); // gas savings
+
         unchecked {
             uint32 timeElapsed = uint32(block.timestamp - blockTimestampLast); // overflow is desired
             if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
@@ -82,12 +85,12 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard {
                 price1CumulativeLast += uint256(UQ112x112.encode(_reserve0).uqdiv(_reserve1)) * timeElapsed;
             }
 
-            reserve0 = uint112(balance0);
-            reserve1 = uint112(balance1);
+            reserve0 = _balance0;
+            reserve1 = _balance1;
             blockTimestampLast = uint32(block.timestamp);
         }
 
-        emit Sync(reserve0, reserve1);
+        emit Sync(_balance0, _balance1);
     }
 
     // fee is always on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
