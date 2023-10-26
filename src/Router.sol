@@ -312,9 +312,10 @@ contract LatamswapRouter is ILatamSwapRouter {
     // **** SWAP (supporting fee-on-transfer tokens) ****
     // requires the initial amount to have already been sent to the first pair
     function _swapSupportingFeeOnTransferTokens(address[] memory path, address _to) internal virtual {
-        address input;
-        address output;
         for (uint256 i; i < path.length - 1;) {
+            address input;
+            address output;
+
             unchecked {
                 (input, output) = (path[i], path[i + 1]);
             }
