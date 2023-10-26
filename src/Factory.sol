@@ -48,9 +48,8 @@ contract LatamswapFactory is Ownable {
      * @notice Tokens must be different and not already have a pair.
      */
     function createPair(address tokenA, address tokenB) external returns (address pair) {
-        if (tokenA == tokenB) revert ErrIdenticalAddress();
+        // @dev sortTokens will revert if any address is 0 or address are identical
         (address token0, address token1) = PairLibrary.sortTokens(tokenA, tokenB);
-        if (token0 == address(0)) revert ErrZeroAddress();
         if (getPair[token0][token1] != address(0)) revert ErrPairExists(); // single check is sufficient
 
         bytes memory creationCode = abi.encodePacked(type(PairV2).creationCode, abi.encode(token0, token1));
