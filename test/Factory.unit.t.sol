@@ -7,24 +7,36 @@ import "forge-std/Test.sol";
 
 // Pair factory and Pair
 import {LatamswapFactory} from "src/Factory.sol";
+import {MockToken} from "./MockToken.sol";
 
 contract FactoryUnitTest is Test {
     // Pair factory and Pair
     LatamswapFactory factory;
+    MockToken tokenMock;
+
+    address deployer = makeAddr("deployer");
 
     // expected errors
     error ErrZeroAddress();
     error ErrIdenticalAddress();
     error ErrPairExists();
+    error Unauthorized();
+
+    // constants
+    uint256 constant AMOUNT_STUCK = 1000;
 
     function setUp() public {
-        factory = new LatamswapFactory(address(this));
+        factory = new LatamswapFactory(deployer);
+        tokenMock = new MockToken();
+        tokenMock.mint(address(factory), AMOUNT_STUCK);
     }
     
     function test_addDuplicatePair() public { 
       address token0 = makeAddr("token0");
       address token1 = makeAddr("token1");
       factory.createPair(token0, token1);
+
+      assertEq(factory.allPairsLength(), 1);
 
       vm.expectRevert(ErrPairExists.selector);
       factory.createPair(token0, token1);
@@ -47,5 +59,37 @@ contract FactoryUnitTest is Test {
       
       vm.expectRevert(ErrIdenticalAddress.selector);
       factory.createPair(token0, token0);
+    }
+
+    function test_withdrawStuck() public {
+      address account = makeAddr("account");
+
+      assertEq(tokenMock.balanceOf(address(factory)), AMOUNT_STUCK);
+      
+      vm.expectRevert(Unauthorized.selector);
+      factory.withdraw(address(tokenMock), account);
+
+      vm.prank(deployer);
+      factory.withdraw(address(tokenMock), account);
+      
+      assertEq(tokenMock.balanceOf(address(factory)), 0);
+      assertEq(tokenMock.balanceOf(account), AMOUNT_STUCK);
+    }
+
+    function test_withdrawAmountStuck() public {
+      address account = makeAddr("account");
+
+      assertEq(tokenMock.balanceOf(address(factory)), AMOUNT_STUCK);
+
+      uint256 withdrawAmount = AMOUNT_STUCK / 4;
+      
+      vm.expectRevert(Unauthorized.selector);
+      factory.withdraw(address(tokenMock), account, withdrawAmount);
+
+      vm.prank(deployer);
+      factory.withdraw(address(tokenMock), account, withdrawAmount);
+      
+      assertEq(tokenMock.balanceOf(address(factory)), AMOUNT_STUCK - withdrawAmount);
+      assertEq(tokenMock.balanceOf(account), withdrawAmount);
     }
 }
