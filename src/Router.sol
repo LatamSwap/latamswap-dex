@@ -360,8 +360,7 @@ contract LatamswapRouter is ILatamSwapRouter {
         uint256 deadline
     ) external payable virtual override ensure(deadline) {
         if (path[0] != NATIVO) revert ErrInvalidPath();
-        uint256 amountIn = msg.value;
-        INativo(payable(NATIVO)).depositTo{value: amountIn}(PairLibrary.pairFor(factory, path[0], path[1]));
+        INativo(payable(NATIVO)).depositTo{value: msg.value}(PairLibrary.pairFor(factory, path[0], path[1]));
         uint256 balanceBefore = path[path.length - 1].balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
         if (path[path.length - 1].balanceOf(to) - balanceBefore < amountOutMin) revert ErrInsufficientOutputAmount();

@@ -44,11 +44,11 @@ library PairLibrary {
     // given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
     function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) internal pure returns (uint256 amountB) {
         if (amountA == 0) revert ErrInsufficientAmount();
+        if (reserveB == 0) revert ErrInsufficientLiquidity();
         amountB = amountA * reserveB;
         unchecked {
             amountB = amountB / reserveA;
         }
-        if (reserveB == 0) revert ErrInsufficientLiquidity();
     }
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
