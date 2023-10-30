@@ -43,8 +43,8 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
         _blockTimestampLast = blockTimestampLast;
     }
 
-    constructor(address _token0, address _token1) {
-        factory = msg.sender;
+    constructor(address _token0, address _token1, address _factory) {
+        factory = _factory;
         token0 = _token0;
         token1 = _token1;
     }

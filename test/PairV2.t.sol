@@ -59,8 +59,7 @@ contract PairV2Test is Test {
         unitokenA.mint(address(this), 1001 ether);
         unitokenB.mint(address(this), 1001 ether);
 
-        vm.prank(factory);
-        pair = new PairV2(token0, token1);
+        pair = new PairV2(token0, token1, factory);
 
         MINIMUM_LIQUIDITY = pair.MINIMUM_LIQUIDITY();
 

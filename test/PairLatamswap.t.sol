@@ -16,12 +16,12 @@ contract LatamPair2Test is BasePairTest {
         factory = address(new MockFactory(address(this)));
         IUniswapV2Factory(factory).setFeeTo(address(this));
 
-        vm.prank(address(factory));
         pair = IUniswapV2Pair(
             address(
                 new PairV2(
                 address(token0),
-                address(token1)
+                address(token1),
+                factory
                 )
             )
         );
