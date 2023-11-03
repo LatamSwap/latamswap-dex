@@ -29,7 +29,8 @@ contract LatamPair2Test is BasePairTest {
 
     function testMetadata() public {
         assertEq(pair.name(), "LatamSwap PairV2");
-        assertEq(pair.symbol(), "LATAMSWAP-V2");
+        // max length allowed is 11 characters
+        assertEq(pair.symbol(), "LATAMSWP-V2");
         assertEq(pair.decimals(), 18);
     }
 }

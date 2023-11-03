@@ -34,7 +34,8 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
     }
 
     function symbol() public view override returns (string memory) {
-        return "LATAMSWAP-V2";
+        // max length allowed is 11 characters
+        return "LATAMSWP-V2";
     }
 
     function getReserves() public view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast) {
