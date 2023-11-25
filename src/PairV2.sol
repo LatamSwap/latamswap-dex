@@ -105,10 +105,12 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
         if (_totalSupply == 0) {
             liquidity = FixedPointMathLib.sqrt(amount0 * amount1);
             if (liquidity <= MINIMUM_LIQUIDITY) revert ErrLatamswapInsufficientLiquidity();
-            unchecked { // Previous if checks the overflow
+            // Previous if checks the overflow
+            unchecked {
                 liquidity -= MINIMUM_LIQUIDITY;
             }
-            _mint(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
+            // permanently lock the first MINIMUM_LIQUIDITY tokens
+            _mint(address(0), MINIMUM_LIQUIDITY);
         } else {
             liquidity = FixedPointMathLib.min(amount0 * _totalSupply / _reserve0, amount1 * _totalSupply / _reserve1);
         }
@@ -118,7 +120,8 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
         _mint(to, liquidity);
 
         _update(balance0, balance1, _reserve0, _reserve1);
-        kLast = uint256(reserve0) * uint256(reserve1); // reserve0 and reserve1 are up-to-date
+        // reserve0 and reserve1 are up-to-date
+        kLast = uint256(reserve0) * uint256(reserve1);
         emit Mint(msg.sender, amount0, amount1);
     }
 
