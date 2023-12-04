@@ -20,7 +20,7 @@ contract PairLibraryTest is Test {
         vm.etch(tokenA, address(new MockToken()).code);
         vm.etch(tokenB, address(new MockToken()).code);
 
-        factory = address(new LatamswapFactory(address(this)));
+        factory = address(new LatamswapFactory(address(this), address(0), address(0)));
 
         pairAB = LatamswapFactory(factory).createPair(tokenA, tokenB);
     }

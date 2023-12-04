@@ -26,7 +26,7 @@ contract FactoryUnitTest is Test {
     uint256 constant AMOUNT_STUCK = 1000;
 
     function setUp() public {
-        factory = new LatamswapFactory(deployer);
+        factory = new LatamswapFactory(deployer, address(0), address(0));
         tokenMock = new MockToken();
         tokenMock.mint(address(factory), AMOUNT_STUCK);
     }

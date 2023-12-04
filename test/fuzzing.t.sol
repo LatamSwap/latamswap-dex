@@ -70,7 +70,7 @@ contract TestCore is Test {
         assertEq(address(nativo), 0x0000000B81F7260fA5add246b9C23bb2D89dDB20);
 
         // Deploy factory and Pairs
-        testFactory = new LatamswapFactory(address(this));
+        testFactory = new LatamswapFactory(address(this), address(weth), address(nativo));
         vm.label(address(testFactory), "FACTORY");
 
         testStablePair = PairV2(testFactory.createPair(address(usdc), address(usdt)));

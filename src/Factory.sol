@@ -6,6 +6,7 @@ import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {CREATE3} from "solady/utils/CREATE3.sol";
 
 import {PairV2} from "./PairV2.sol";
+import {PairV2Native} from "./PairV2-NATIVO-WETH.sol";
 import {PairLibrary} from "./PairLibrary.sol";
 
 /**
@@ -30,7 +31,10 @@ contract LatamswapFactory is Ownable {
     event PairCreated(address indexed token0, address indexed token1, address pair, uint256 allPairsLength);
 
     /// @dev Initializes the owner of the contract
-    constructor(address _owner) {
+    constructor(address _owner, address _weth, address _nativo) {
+        if (_weth != _nativo && _nativo != address(0)) {
+            _createStablePair(_weth, _nativo);
+        }
         _initializeOwner(_owner);
     }
 
@@ -38,6 +42,21 @@ contract LatamswapFactory is Ownable {
     /// @return Total number of pairs.
     function allPairsLength() external view returns (uint256) {
         return allPairs.length;
+    }
+
+    function _createStablePair(address weth, address nativo) internal returns (address pair) {
+        // @dev sortTokens will revert if any address is 0 or address are identical
+        (address token0, address token1) = PairLibrary.sortTokens(weth, nativo);
+        if (getPair[token0][token1] != address(0)) revert ErrPairExists(); // single check is sufficient
+
+        bytes memory creationCode = abi.encodePacked(type(PairV2Native).creationCode, abi.encode(token0, token1, address(this)));
+
+        pair = CREATE3.deploy(keccak256(abi.encodePacked(token0, token1)), creationCode, 0);
+
+        getPair[token0][token1] = pair;
+        getPair[token1][token0] = pair; // populate mapping in the reverse direction
+        allPairs.push(pair);
+        emit PairCreated(token0, token1, pair, allPairs.length);
     }
 
     /**

@@ -24,7 +24,7 @@ contract CounterScript is Script {
         
 
         vm.broadcast();
-        LatamswapFactory _factory = new LatamswapFactory(ORIGIN);
+        LatamswapFactory _factory = new LatamswapFactory(ORIGIN, address(0), address(0));
         vm.broadcast();
         LatamswapRouter _router = new LatamswapRouter(address(_factory), nativo);
 
