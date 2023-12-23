@@ -52,3 +52,12 @@ Contributions are what make the open-source community such an amazing place to l
 3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+## Deployment on MODE Testnet
+
+
+- `factory address `[0x420fAd7011A85cc6C308941A7245b7c0E695Fe85`](https://https://sepolia.explorer.mode.network/address/0x420fAd7011A85cc6C308941A7245b7c0E695Fe85)
+- `router address `[0x2Ca416EA2F4bb26ff448823EB38e533b60875C81`](https://https://sepolia.explorer.mode.network/address/0x2Ca416EA2F4bb26ff448823EB38e533b60875C81)
+- `multicall address `[0xda53bDEE5B6Cf873266d2F3362d80B7B52D43124`](https://https://sepolia.explorer.mode.network/address/0xda53bDEE5B6Cf873266d2F3362d80B7B52D43124)
+- `Mock token address `[0xfF6AE961405b4f3e3169e6640Cd1cA3083D58a7b`](https://https://sepolia.explorer.mode.network/address/0xfF6AE961405b4f3e3169e6640Cd1cA3083D58a7b)
+- `Pair TOKEN-WET: address `[0x9Fda9BF5C83d23D31fa2b055C64789435e13EDB9`](https://https://sepolia.explorer.mode.network/address/0x9Fda9BF5C83d23D31fa2b055C64789435e13EDB9)
