@@ -81,7 +81,6 @@ contract PairNativeV2Test is Test {
         amount0 = bound(amount0, 0, 100 ether);
         amount1 = bound(amount1, 0, 100 ether);
 
-
         tokenWeth.transfer(address(pair), amount0);
         tokenNativo.transfer(address(pair), amount1);
 
@@ -120,16 +119,15 @@ contract PairNativeV2Test is Test {
     }
 
     function test_SwapToken1() public {
-            uint256 swapAmount = 1 ether;
-            uint256 expectedOutputAmount = 1 ether;
-    
-            MockERC20(token1).transfer(address(pair), swapAmount);
-            address swapper = makeAddr("swapper");
-            pair.swap(expectedOutputAmount, 0, swapper, "");
-    
-            assertEq(token0.balanceOf(swapper), swapAmount);
-            assertEq(token1.balanceOf(swapper), 0);
-        
+        uint256 swapAmount = 1 ether;
+        uint256 expectedOutputAmount = 1 ether;
+
+        MockERC20(token1).transfer(address(pair), swapAmount);
+        address swapper = makeAddr("swapper");
+        pair.swap(expectedOutputAmount, 0, swapper, "");
+
+        assertEq(token0.balanceOf(swapper), swapAmount);
+        assertEq(token1.balanceOf(swapper), 0);
     }
 
     function test_Burn() public {
@@ -167,7 +165,7 @@ contract PairNativeV2Test is Test {
 
         //assertEq(pair.price0CumulativeLast(), initialPrice0 * 10);
         //assertEq(pair.price1CumulativeLast(), initialPrice1 * 10);
-        (,, blockTimestamp2) = pair.getReserves();
+        (,, uint256 blockTimestamp2) = pair.getReserves();
         assertEq(blockTimestamp2, blockTimestamp + 10);
     }
 
