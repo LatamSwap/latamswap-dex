@@ -8,12 +8,7 @@ import {IUniswapV2Callee} from "v2-core/interfaces/IUniswapV2Callee.sol";
 import {ERC20} from "solady/tokens/ERC20.sol";
 import {ERC1363} from "./ERC1363.sol";
 import {IPairLatamSwap} from "./interfaces/IPairLatamSwap.sol";
-
-    
-interface INativeWrap {
-    function withdraw(uint256 amount) external;
-    function deposit() external payable;
-}
+import {IGenericWETH} from "./interfaces/IGenericWETH.sol";
 
 contract PairV2Native is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
     using SafeTransferLib for address;
