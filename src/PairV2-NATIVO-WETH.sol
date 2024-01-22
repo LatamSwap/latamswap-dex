@@ -14,6 +14,7 @@ contract PairV2Native is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
     using SafeTransferLib for address;
 
     error ErrFunctionDisabled();
+    error ErrEtherReject();
 
     // 10 ** 3 = 1e3 = 1000
     uint256 public constant MINIMUM_LIQUIDITY = 1e3;
@@ -22,13 +23,16 @@ contract PairV2Native is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
     address public immutable token0;
     address public immutable token1;
 
-    uint112 private reserve0 = type(uint112).max; // uses single storage slot, accessible via getReserves
-    uint112 private reserve1 = type(uint112).max; // uses single storage slot, accessible via getReserves
+    //type(uint112).max; // uses single storage slot, accessible via getReserves
+    uint112 private constant reserve0 = type(uint112).max;
+    // uses single storage slot, accessible via getReserves
+    uint112 private constant reserve1 = type(uint112).max;
     uint32 private blockTimestampLast; // uses single storage slot, accessible via getReserves
 
-    uint256 public price0CumulativeLast = 1 ether;
-    uint256 public price1CumulativeLast = 1 ether;
-    uint256 public kLast = type(uint256).max;
+    uint256 public constant price0CumulativeLast = 1 ether;
+    uint256 public constant price1CumulativeLast = 1 ether;
+    // kLast = type(uint112).max * type(uint112).max
+    uint256 public constant kLast = type(uint112).max * type(uint112).max;
 
     function name() public view override returns (string memory) {
         return "LatamSwap PairV2";
@@ -149,6 +153,6 @@ contract PairV2Native is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
     }
 
     receive() external payable {
-        require(msg.sender == token0 || msg.sender == token1, "Latamswap: Cannot receive ETH");
+        if (msg.sender != token0 && msg.sender != token1) revert ErrEtherReject();
     }
 }
