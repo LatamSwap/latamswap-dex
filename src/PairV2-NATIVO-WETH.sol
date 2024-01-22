@@ -83,13 +83,13 @@ contract PairV2Native is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
         amount1Out = token1.balanceOf(address(this));
 
         if (amount1Out > 0) {
-            IGenericWETH(token0).withdraw(amount1Out);
-            IGenericWETH(token1).deposit{value: amount1Out}();
+            IGenericWETH(token1).withdraw(amount1Out);
+            IGenericWETH(token0).deposit{value: amount1Out}();
         }
 
         if (amount0Out > 0) {
-            IGenericWETH(token1).withdraw(amount0Out);
-            IGenericWETH(token0).deposit{value: amount0Out}();
+            IGenericWETH(token0).withdraw(amount0Out);
+            IGenericWETH(token1).deposit{value: amount0Out}();
         }
 
         blockTimestampLast = uint32(block.timestamp);

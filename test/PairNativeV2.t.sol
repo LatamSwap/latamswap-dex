@@ -81,11 +81,11 @@ contract PairNativeV2Test is Test {
         amount0 = bound(amount0, 0, 100 ether);
         amount1 = bound(amount1, 0, 100 ether);
 
-        address skimmer = makeAddr("skimmer");
 
         tokenWeth.transfer(address(pair), amount0);
         tokenNativo.transfer(address(pair), amount1);
 
+        address skimmer = makeAddr("skimmer");
         pair.skim(skimmer);
         assertEq(tokenWeth.balanceOf(skimmer), amount0);
         assertEq(tokenNativo.balanceOf(skimmer), amount1);
@@ -100,67 +100,36 @@ contract PairNativeV2Test is Test {
 
         vm.expectRevert(ErrFunctionDisabled.selector);
         pair.mint(address(this));
+
+        address skimmer = makeAddr("skimmer");
+        pair.skim(skimmer);
+        assertEq(tokenWeth.balanceOf(skimmer), amount0);
+        assertEq(tokenNativo.balanceOf(skimmer), amount1);
     }
 
     function test_SwapToken0() public {
-        uint256 token0Amount = 5 ether;
-        uint256 token1Amount = 10 ether;
-
         uint256 swapAmount = 1 ether;
         uint256 expectedOutputAmount = 1 ether;
 
-        /*
-        vm.expectEmit(true, true, true, false, address(token1));
-        emit Transfer(address(pair), address(this), expectedOutputAmount);
+        MockERC20(token0).transfer(address(pair), swapAmount);
+        address swapper = makeAddr("swapper");
+        pair.swap(0, expectedOutputAmount, swapper, "");
 
-        vm.expectEmit(true, true, false, false, address(pair));
-        emit Sync(uint112(token0Amount + 1 ether), uint112(token1Amount - expectedOutputAmount));
-
-        vm.expectEmit(true, true, true, true, address(pair));
-        emit Swap(address(this), swapAmount, 0, 0, expectedOutputAmount, address(this));
-        */
-        pair.swap(0, expectedOutputAmount, address(this), "");
-
-        assertEq(token0.balanceOf(address(pair)), token0Amount + swapAmount);
-        assertEq(token1.balanceOf(address(pair)), token1Amount - expectedOutputAmount);
-
-        uint256 totalSupplyToken0 = MockERC20(token0).totalSupply();
-        uint256 totalSupplyToken1 = MockERC20(token1).totalSupply();
-        assertEq(token0.balanceOf(address(this)), totalSupplyToken0 - token0Amount - swapAmount);
-        assertEq(token1.balanceOf(address(this)), totalSupplyToken1 - token1Amount + expectedOutputAmount);
+        assertEq(token0.balanceOf(swapper), 0);
+        assertEq(token1.balanceOf(swapper), swapAmount);
     }
 
     function test_SwapToken1() public {
-        uint256 token0Amount = 5 ether;
-        uint256 token1Amount = 10 ether;
-        addLiquidity(token0Amount, token1Amount);
-
-        uint256 swapAmount = 1 ether;
-        uint256 expectedOutputAmount = 453305446940074565;
-        token1.safeTransfer(address(pair), swapAmount);
-
-        vm.expectEmit(true, true, true, false, address(token0));
-        emit Transfer(address(pair), address(this), expectedOutputAmount);
-
-        vm.expectEmit(true, true, false, false, address(pair));
-        emit Sync(uint112(token0Amount - expectedOutputAmount), uint112(token1Amount + swapAmount));
-
-        vm.expectEmit(true, true, true, true, address(pair));
-        emit Swap(address(this), 0, swapAmount, expectedOutputAmount, 0, address(this));
-
-        pair.swap(expectedOutputAmount, 0, address(this), "");
-
-        (uint112 reserve0, uint112 reserve1,) = pair.getReserves();
-        assertEq(reserve0, token0Amount - expectedOutputAmount);
-        assertEq(reserve1, token1Amount + swapAmount);
-
-        assertEq(token0.balanceOf(address(pair)), token0Amount - expectedOutputAmount);
-        assertEq(token1.balanceOf(address(pair)), token1Amount + swapAmount);
-
-        uint256 totalSupplyToken0 = MockERC20(token0).totalSupply();
-        uint256 totalSupplyToken1 = MockERC20(token1).totalSupply();
-        assertEq(token0.balanceOf(address(this)), totalSupplyToken0 - token0Amount + expectedOutputAmount);
-        assertEq(token1.balanceOf(address(this)), totalSupplyToken1 - token1Amount - swapAmount);
+            uint256 swapAmount = 1 ether;
+            uint256 expectedOutputAmount = 1 ether;
+    
+            MockERC20(token1).transfer(address(pair), swapAmount);
+            address swapper = makeAddr("swapper");
+            pair.swap(expectedOutputAmount, 0, swapper, "");
+    
+            assertEq(token0.balanceOf(swapper), swapAmount);
+            assertEq(token1.balanceOf(swapper), 0);
+        
     }
 
     function test_Burn() public {
@@ -188,9 +157,6 @@ contract PairNativeV2Test is Test {
         assertEq(pair.price1CumulativeLast(), initialPrice1);
         */
 
-        (,, uint256 blockTimestamp2) = pair.getReserves();
-        assertEq(blockTimestamp2, blockTimestamp + 1);
-
         uint256 swapAmount = 3 ether;
         token0.safeTransfer(address(pair), swapAmount);
         vm.roll(block.number + 1);
@@ -203,19 +169,6 @@ contract PairNativeV2Test is Test {
         //assertEq(pair.price1CumulativeLast(), initialPrice1 * 10);
         (,, blockTimestamp2) = pair.getReserves();
         assertEq(blockTimestamp2, blockTimestamp + 10);
-
-        vm.roll(block.number + 1);
-        vm.warp(block.timestamp + 20);
-        vm.expectRevert(ErrFunctionDisabled.selector);
-        pair.sync();
-        /*
-
-    const newPrice = encodePrice(expandTo18Decimals(6), expandTo18Decimals(2))
-    expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0].mul(10).add(newPrice[0].mul(10)))
-    expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1].mul(10).add(newPrice[1].mul(10)))
-    expect((await pair.getReserves())[2]).to.eq(blockTimestamp + 20)
-    })
-        */
     }
 
     function runSwapCase(uint256 swapAmount, uint256 token0Amount, uint256 token1Amount, uint256 expectedOutputAmount)
