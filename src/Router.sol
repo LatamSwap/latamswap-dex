@@ -8,7 +8,6 @@ import {PairV2} from "./PairV2.sol";
 import {INativo} from "nativo/INativo.sol";
 
 contract LatamswapRouter is ILatamSwapRouter {
-
     using SafeTransferLib for address;
 
     address public immutable factory;
