@@ -1,0 +1,392 @@
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.8.10;
+
+import "forge-std/Test.sol";
+
+import "./helper/BasePairTest.sol";
+
+import {PairV2Native} from "src/PairV2-NATIVO-WETH.sol";
+import {PairLibrary} from "src/PairLibrary.sol";
+import {Nativo} from "lib/Nativo/src/Nativo.sol";
+import {WETH} from "solady/tokens/WETH.sol";
+
+import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
+
+contract PairNativeV2Test is Test {
+    using SafeTransferLib for address;
+
+    error ErrFunctionDisabled();
+
+    address factory = makeAddr("factory");
+
+    Nativo tokenNativo = new Nativo("Nativo", "NETH", makeAddr("nativoOwner"), makeAddr("nativoOwner"));
+    WETH tokenWeth = new WETH();
+
+    address token0;
+    address token1;
+
+    // events for test
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Sync(uint112 reserve0, uint112 reserve1);
+    event Swap(
+        address indexed sender,
+        uint256 amount0In,
+        uint256 amount1In,
+        uint256 amount0Out,
+        uint256 amount1Out,
+        address indexed to
+    );
+    event Burn(address indexed sender, uint256 amount0, uint256 amount1, address indexed to);
+
+    PairV2Native pair;
+
+    function setUp() public {
+        (token0, token1) = PairLibrary.sortTokens(address(tokenNativo), address(tokenWeth));
+
+        tokenWeth.deposit{value: 100 ether}();
+        tokenNativo.deposit{value: 100 ether}();
+
+        pair = new PairV2Native(token0, token1, factory);
+    }
+
+    function addLiquidity(uint256 token0Amount, uint256 token1Amount) internal {
+        MockERC20(token0).transfer(address(pair), token0Amount);
+        MockERC20(token1).transfer(address(pair), token1Amount);
+        vm.expectRevert(ErrFunctionDisabled.selector);
+        pair.mint(address(this));
+    }
+
+    function test_Mint() public {
+        // user should send funds to mint, is impossible to mint shares
+        MockERC20(token0).transfer(address(pair), 1 ether);
+        MockERC20(token1).transfer(address(pair), 4 ether);
+
+        vm.expectRevert(ErrFunctionDisabled.selector);
+        pair.mint(address(this));
+
+        assertEq(pair.totalSupply(), type(uint256).max, "supply is always max");
+
+        assertEq(MockERC20(token0).balanceOf(address(pair)), 1 ether);
+        assertEq(MockERC20(token1).balanceOf(address(pair)), 4 ether);
+        (uint256 reserve0, uint256 reserve1,) = pair.getReserves();
+        assertEq(reserve0, type(uint112).max);
+        assertEq(reserve1, type(uint112).max);
+
+        pair.skim(address(this));
+        assertEq(MockERC20(token0).balanceOf(address(pair)), 0);
+        assertEq(MockERC20(token1).balanceOf(address(pair)), 0);
+    }
+
+    function test_Skim(uint256 amount0, uint256 amount1) public {
+        amount0 = bound(amount0, 0, 100 ether);
+        amount1 = bound(amount1, 0, 100 ether);
+
+        address skimmer = makeAddr("skimmer");
+
+        tokenWeth.transfer(address(pair), amount0);
+        tokenNativo.transfer(address(pair), amount1);
+
+        pair.skim(skimmer);
+        assertEq(tokenWeth.balanceOf(skimmer), amount0);
+        assertEq(tokenNativo.balanceOf(skimmer), amount1);
+    }
+
+    function test_MintLiquidity(uint256 amount0, uint256 amount1) public {
+        amount0 = bound(amount0, 0, 100 ether);
+        amount1 = bound(amount1, 0, 100 ether);
+
+        token0.safeTransfer(address(pair), amount0);
+        token1.safeTransfer(address(pair), amount1);
+
+        vm.expectRevert(ErrFunctionDisabled.selector);
+        pair.mint(address(this));
+    }
+
+    function test_SwapToken0() public {
+        uint256 token0Amount = 5 ether;
+        uint256 token1Amount = 10 ether;
+
+        uint256 swapAmount = 1 ether;
+        uint256 expectedOutputAmount = 1 ether;
+
+        /*
+        vm.expectEmit(true, true, true, false, address(token1));
+        emit Transfer(address(pair), address(this), expectedOutputAmount);
+
+        vm.expectEmit(true, true, false, false, address(pair));
+        emit Sync(uint112(token0Amount + 1 ether), uint112(token1Amount - expectedOutputAmount));
+
+        vm.expectEmit(true, true, true, true, address(pair));
+        emit Swap(address(this), swapAmount, 0, 0, expectedOutputAmount, address(this));
+        */
+        pair.swap(0, expectedOutputAmount, address(this), "");
+
+        assertEq(token0.balanceOf(address(pair)), token0Amount + swapAmount);
+        assertEq(token1.balanceOf(address(pair)), token1Amount - expectedOutputAmount);
+
+        uint256 totalSupplyToken0 = MockERC20(token0).totalSupply();
+        uint256 totalSupplyToken1 = MockERC20(token1).totalSupply();
+        assertEq(token0.balanceOf(address(this)), totalSupplyToken0 - token0Amount - swapAmount);
+        assertEq(token1.balanceOf(address(this)), totalSupplyToken1 - token1Amount + expectedOutputAmount);
+    }
+
+    function test_SwapToken1() public {
+        uint256 token0Amount = 5 ether;
+        uint256 token1Amount = 10 ether;
+        addLiquidity(token0Amount, token1Amount);
+
+        uint256 swapAmount = 1 ether;
+        uint256 expectedOutputAmount = 453305446940074565;
+        token1.safeTransfer(address(pair), swapAmount);
+
+        vm.expectEmit(true, true, true, false, address(token0));
+        emit Transfer(address(pair), address(this), expectedOutputAmount);
+
+        vm.expectEmit(true, true, false, false, address(pair));
+        emit Sync(uint112(token0Amount - expectedOutputAmount), uint112(token1Amount + swapAmount));
+
+        vm.expectEmit(true, true, true, true, address(pair));
+        emit Swap(address(this), 0, swapAmount, expectedOutputAmount, 0, address(this));
+
+        pair.swap(expectedOutputAmount, 0, address(this), "");
+
+        (uint112 reserve0, uint112 reserve1,) = pair.getReserves();
+        assertEq(reserve0, token0Amount - expectedOutputAmount);
+        assertEq(reserve1, token1Amount + swapAmount);
+
+        assertEq(token0.balanceOf(address(pair)), token0Amount - expectedOutputAmount);
+        assertEq(token1.balanceOf(address(pair)), token1Amount + swapAmount);
+
+        uint256 totalSupplyToken0 = MockERC20(token0).totalSupply();
+        uint256 totalSupplyToken1 = MockERC20(token1).totalSupply();
+        assertEq(token0.balanceOf(address(this)), totalSupplyToken0 - token0Amount + expectedOutputAmount);
+        assertEq(token1.balanceOf(address(this)), totalSupplyToken1 - token1Amount - swapAmount);
+    }
+
+    function test_Burn() public {
+        vm.expectRevert(ErrFunctionDisabled.selector);
+        pair.burn(address(this));
+    }
+
+    function encodePrice(uint256 reserve0, uint256 reserve1) internal pure returns (uint256 a, uint256 b) {
+        a = reserve1 * (2 ** 112) / reserve0;
+        b = reserve0 * (2 ** 112) / reserve1;
+    }
+
+    function test_CumulativePrice() public {
+        (,, uint256 blockTimestamp) = pair.getReserves();
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 1);
+
+        vm.expectRevert(ErrFunctionDisabled.selector);
+        pair.sync();
+
+        /*
+        (uint256 initialPrice0, uint256 initialPrice1) = encodePrice(token0Amount, token1Amount);
+
+        assertEq(pair.price0CumulativeLast(), initialPrice0);
+        assertEq(pair.price1CumulativeLast(), initialPrice1);
+        */
+
+        (,, uint256 blockTimestamp2) = pair.getReserves();
+        assertEq(blockTimestamp2, blockTimestamp + 1);
+
+        uint256 swapAmount = 3 ether;
+        token0.safeTransfer(address(pair), swapAmount);
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 9);
+
+        // swap to a new price eagerly instead of syncing
+        pair.swap(0, 1 ether, address(this), ""); // make the price nice
+
+        //assertEq(pair.price0CumulativeLast(), initialPrice0 * 10);
+        //assertEq(pair.price1CumulativeLast(), initialPrice1 * 10);
+        (,, blockTimestamp2) = pair.getReserves();
+        assertEq(blockTimestamp2, blockTimestamp + 10);
+
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 20);
+        vm.expectRevert(ErrFunctionDisabled.selector);
+        pair.sync();
+        /*
+
+    const newPrice = encodePrice(expandTo18Decimals(6), expandTo18Decimals(2))
+    expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0].mul(10).add(newPrice[0].mul(10)))
+    expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1].mul(10).add(newPrice[1].mul(10)))
+    expect((await pair.getReserves())[2]).to.eq(blockTimestamp + 20)
+    })
+        */
+    }
+
+    function runSwapCase(uint256 swapAmount, uint256 token0Amount, uint256 token1Amount, uint256 expectedOutputAmount)
+        internal
+    {
+        addLiquidity(token0Amount, token1Amount);
+        token0.safeTransfer(address(pair), swapAmount);
+        vm.expectRevert();
+        pair.swap(0, expectedOutputAmount + 1, address(this), "");
+        pair.swap(0, expectedOutputAmount, address(this), "");
+    }
+
+    function test_swap1() public {
+        runSwapCase(1 ether, 5 ether, 10 ether, 1662497915624478906);
+    }
+
+    function test_swap2() public {
+        runSwapCase(1 ether, 10 ether, 5 ether, 453305446940074565);
+    }
+    // [2, 5, 10, '2851015155847869602'],
+
+    function test_swap3() public {
+        runSwapCase(2 ether, 5 ether, 10 ether, 2851015155847869602);
+    }
+
+    // [2, 10, 5, '831248957812239453'],
+    function test_swap4() public {
+        runSwapCase(2 ether, 10 ether, 5 ether, 831248957812239453);
+    }
+
+    // [2, 10, 5, '831248957812239453'],
+    function test_swap5() public {
+        runSwapCase(2 ether, 10 ether, 5 ether, 831248957812239453);
+    }
+
+    // [2, 10, 5, '831248957812239453'],
+    function test_swap6() public {
+        runSwapCase(2 ether, 10 ether, 5 ether, 831248957812239453);
+    }
+
+    // [1, 10, 10, '906610893880149131'],
+    function test_swap7() public {
+        runSwapCase(1 ether, 10 ether, 10 ether, 906610893880149131);
+    }
+
+    // [1, 100, 100, '987158034397061298'],
+    function test_swap8() public {
+        runSwapCase(1 ether, 100 ether, 100 ether, 987158034397061298);
+    }
+
+    // [1, 1000, 1000, '996006981039903216']
+    function test_swap9() public {
+        runSwapCase(1 ether, 1000 ether, 1000 ether, 996006981039903216);
+    }
+
+    /*
+
+
+
+
+
+
+    ].map(a => a.map(n => (typeof n === 'string' ? bigNumberify(n) : expandTo18Decimals(n))))
+    swapTestCases.forEach((swapTestCase, i) => {
+    it(`getInputPrice:${i}`, async () => {
+      const [swapAmount, token0Amount, token1Amount, expectedOutputAmount] = swapTestCase
+      await addLiquidity(token0Amount, token1Amount)
+      await token0.transfer(pair.address, swapAmount)
+      await expect(pair.swap(0, expectedOutputAmount.add(1), wallet.address, '0x', overrides)).to.be.revertedWith(
+        'UniswapV2: K'
+      )
+      await pair.swap(0, expectedOutputAmount, wallet.address, '0x', overrides)
+    })
+    })
+    */
+}
+/*
+
+    console.log("totalSupply", pair.totalSupply());
+
+
+    tokenWeth.transfer(address(pair), 1 ether);
+    pair.swap(0.5 ether, 0, address(this), "");
+    pair.skim(address(this));
+    console.log("totalSupply", pair.totalSupply());
+
+    tokenWeth.transfer(address(pair), 100);
+    tokenNativo.transfer(address(pair), 100);
+    pair.mint(address(0xbeef));
+    pair.skim(address(this));
+
+    console.log("beef", pair.balanceOf(address(0xbeef)));
+    console.log("totalSupply", pair.totalSupply());
+
+
+    tokenWeth.transfer(address(pair), 100);
+    tokenNativo.transfer(address(pair), 100);
+    pair.mint(address(0xbeef));
+    pair.skim(address(this));
+
+    console.log("totan A", tokenNativo.balanceOf(address(this)));
+    tokenWeth.transfer(address(pair), 1 ether);
+    pair.swap(0, 0.5 ether, address(this), "");
+    pair.skim(address(this));
+console.log("totan A", tokenNativo.balanceOf(address(this)));
+
+    console.log("beef", pair.balanceOf(address(0xbeef)));
+    console.log("totalSupply", pair.totalSupply());*/
+
+/*
+import chai, { expect } from 'chai'
+import { Contract } from 'ethers'
+import { solidity, MockProvider, createFixtureLoader } from 'ethereum-waffle'
+import { BigNumber, bigNumberify } from 'ethers/utils'
+
+import { expandTo18Decimals, mineBlock, encodePrice } from './shared/utilities'
+import { pairFixture } from './shared/fixtures'
+import { AddressZero } from 'ethers/constants'
+
+
+
+chai.use(solidity)
+
+const overrides = {
+  gasLimit: 9999999
+}
+
+
+
+  const swapTestCases: BigNumber[][] = [
+    [1, 5, 10, '1662497915624478906'],
+    [1, 10, 5, '453305446940074565'],
+
+    [2, 5, 10, '2851015155847869602'],
+    [2, 10, 5, '831248957812239453'],
+
+    [1, 10, 10, '906610893880149131'],
+    [1, 100, 100, '987158034397061298'],
+    [1, 1000, 1000, '996006981039903216']
+  ].map(a => a.map(n => (typeof n === 'string' ? bigNumberify(n) : expandTo18Decimals(n))))
+  swapTestCases.forEach((swapTestCase, i) => {
+    it(`getInputPrice:${i}`, async () => {
+      const [swapAmount, token0Amount, token1Amount, expectedOutputAmount] = swapTestCase
+      await addLiquidity(token0Amount, token1Amount)
+      await token0.transfer(pair.address, swapAmount)
+      await expect(pair.swap(0, expectedOutputAmount.add(1), wallet.address, '0x', overrides)).to.be.revertedWith(
+        'UniswapV2: K'
+      )
+      await pair.swap(0, expectedOutputAmount, wallet.address, '0x', overrides)
+    })
+  })
+
+  const optimisticTestCases: BigNumber[][] = [
+    ['997000000000000000', 5, 10, 1], // given amountIn, amountOut = floor(amountIn * .997)
+    ['997000000000000000', 10, 5, 1],
+    ['997000000000000000', 5, 5, 1],
+    [1, 5, 5, '1003009027081243732'] // given amountOut, amountIn = ceiling(amountOut / .997)
+  ].map(a => a.map(n => (typeof n === 'string' ? bigNumberify(n) : expandTo18Decimals(n))))
+  optimisticTestCases.forEach((optimisticTestCase, i) => {
+    it(`optimistic:${i}`, async () => {
+      const [outputAmount, token0Amount, token1Amount, inputAmount] = optimisticTestCase
+      await addLiquidity(token0Amount, token1Amount)
+      await token0.transfer(pair.address, inputAmount)
+      await expect(pair.swap(outputAmount.add(1), 0, wallet.address, '0x', overrides)).to.be.revertedWith(
+        'UniswapV2: K'
+      )
+      await pair.swap(outputAmount, 0, wallet.address, '0x', overrides)
+    })
+  })
+
+
+
+})
+*/
