@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.22;
+pragma solidity 0.8.23;
 
 import {IERC1363Spender} from "openzeppelin/interfaces/IERC1363Spender.sol";
 import {IERC1363Receiver} from "openzeppelin/interfaces/IERC1363Receiver.sol";

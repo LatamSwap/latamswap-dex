@@ -1,4 +1,4 @@
-pragma solidity 0.8.22;
+pragma solidity 0.8.23;
 
 import {IUniswapV2Factory} from "v2-core/interfaces/IUniswapV2Factory.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
@@ -262,7 +262,7 @@ contract LatamswapRouter is ILatamSwapRouter {
     ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
         if (path[path.length - 1] != NATIVO) revert ErrInvalidPath();
         amounts = PairLibrary.getAmountsIn(factory, amountOut, path);
-        // Overall gas change: -261368 (-1.761%)
+
         if (amounts[0] > amountInMax) revert ErrExcessiveInputAmount();
         SafeTransferLib.safeTransferFrom(
             path[0], msg.sender, PairLibrary.pairFor(factory, path[0], path[1]), amounts[0]
