@@ -21,6 +21,7 @@ contract LatamswapFactory is Ownable {
     error ErrZeroAddress();
     error ErrIdenticalAddress();
     error ErrPairExists();
+    error ErrNativoMustBeDeployed();
 
     /// @dev Maps tokens to its pair
     mapping(address fromToken => mapping(address toToken => address pair)) public getPair;
@@ -32,7 +33,10 @@ contract LatamswapFactory is Ownable {
 
     /// @dev Initializes the owner of the contract
     constructor(address _owner, address _weth, address _nativo) {
-        if (_weth != _nativo && _nativo != address(0)) {
+        if (_nativo == address(0)) {
+            revert ErrNativoMustBeDeployed();
+        }
+        if (_weth != address(0) && _nativo != _weth) {
             _createStablePair(_weth, _nativo);
         }
         _initializeOwner(_owner);
@@ -49,7 +53,8 @@ contract LatamswapFactory is Ownable {
         (address token0, address token1) = PairLibrary.sortTokens(weth, nativo);
         if (getPair[token0][token1] != address(0)) revert ErrPairExists(); // single check is sufficient
 
-        bytes memory creationCode = abi.encodePacked(type(PairV2Native).creationCode, abi.encode(token0, token1, address(this)));
+        bytes memory creationCode =
+            abi.encodePacked(type(PairV2Native).creationCode, abi.encode(token0, token1, address(this)));
 
         pair = CREATE3.deploy(keccak256(abi.encodePacked(token0, token1)), creationCode, 0);
 
@@ -71,7 +76,8 @@ contract LatamswapFactory is Ownable {
         (address token0, address token1) = PairLibrary.sortTokens(tokenA, tokenB);
         if (getPair[token0][token1] != address(0)) revert ErrPairExists(); // single check is sufficient
 
-        bytes memory creationCode = abi.encodePacked(type(PairV2).creationCode, abi.encode(token0, token1, address(this)));
+        bytes memory creationCode =
+            abi.encodePacked(type(PairV2).creationCode, abi.encode(token0, token1, address(this)));
 
         pair = CREATE3.deploy(keccak256(abi.encodePacked(token0, token1)), creationCode, 0);
 

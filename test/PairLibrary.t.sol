@@ -9,6 +9,9 @@ import {MockToken} from "./MockToken.sol";
 
 import {PairLibrary} from "src/PairLibrary.sol";
 
+import {Nativo} from "lib/Nativo/src/Nativo.sol";
+import {WETH} from "solady/tokens/WETH.sol";
+
 contract PairLibraryTest is Test {
     address factory;
 
@@ -20,7 +23,9 @@ contract PairLibraryTest is Test {
         vm.etch(tokenA, address(new MockToken()).code);
         vm.etch(tokenB, address(new MockToken()).code);
 
-        factory = address(new LatamswapFactory(address(this), address(0), address(0)));
+        address nativo = address(new Nativo("Nativo", "NETH", makeAddr("nativoOwner"), makeAddr("nativoOwner")));
+
+        factory = address(new LatamswapFactory(address(this), address(0), nativo));
 
         pairAB = LatamswapFactory(factory).createPair(tokenA, tokenB);
     }
