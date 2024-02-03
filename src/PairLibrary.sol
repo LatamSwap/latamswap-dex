@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IUniswapV2Pair} from "v2-core/interfaces/IUniswapV2Pair.sol";
 import {CREATE3} from "solady/utils/CREATE3.sol";
+import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 
 import {PairV2} from "./PairV2.sol";
 
@@ -46,10 +47,8 @@ library PairLibrary {
     function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) internal pure returns (uint256 amountB) {
         if (amountA == 0) revert ErrInsufficientAmount();
         if (reserveB == 0) revert ErrInsufficientLiquidity();
-        amountB = amountA * reserveB;
-        unchecked {
-            amountB = amountB / reserveA;
-        }
+
+        amountB = FixedPointMathLib.mulDiv(amountA, reserveB, reserveA);
     }
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
@@ -61,11 +60,8 @@ library PairLibrary {
         if (amountIn == 0) revert ErrInsufficientInputAmount();
         if (reserveIn == 0 || reserveOut == 0) revert ErrInsufficientLiquidity();
         uint256 amountInWithFee = amountIn * 997;
-        uint256 numerator = amountInWithFee * reserveOut;
         uint256 denominator = reserveIn * 1000 + amountInWithFee;
-        unchecked {
-            amountOut = numerator / denominator;
-        }
+        amountOut = FixedPointMathLib.mulDiv(reserveOut, amountInWithFee, denominator);
     }
 
     // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
@@ -76,11 +72,9 @@ library PairLibrary {
     {
         if (amountOut == 0) revert ErrInsufficientOutputAmount();
         if (reserveIn == 0 || reserveOut == 0) revert ErrInsufficientLiquidity();
-        uint256 numerator = reserveIn * amountOut * 1000;
+
         uint256 denominator = (reserveOut - amountOut) * 997;
-        unchecked {
-            amountIn = (numerator / denominator) + 1;
-        }
+        amountIn = FixedPointMathLib.mulDiv(reserveIn, amountOut * 1000, denominator) + 1;
     }
 
     // performs chained getAmountOut calculations on any number of pairs

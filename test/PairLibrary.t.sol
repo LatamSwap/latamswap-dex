@@ -113,7 +113,7 @@ contract PairLibraryTest is Test {
     }
 
     function testTry_quote_reserveAZero() public {
-        vm.expectRevert(stdError.divisionError);
+        vm.expectRevert(bytes4(keccak256("MulDivFailed()")));
         PairLibrary.quote(1, 0, 1);
     }
 
