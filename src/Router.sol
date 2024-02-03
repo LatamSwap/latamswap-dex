@@ -169,7 +169,7 @@ contract LatamswapRouter is ILatamSwapRouter {
         uint256 deadline
     ) public returns (uint256 amountETH) {
         (, amountETH) = removeLiquidity(token, NATIVO, liquidity, amountTokenMin, amountETHMin, address(this), deadline);
-        SafeTransferLib.safeTransfer(token, to, token.balanceOf(address(this)));
+        token.safeTransferAll(to);
         INativo(payable(NATIVO)).withdrawTo(to, amountETH);
     }
 

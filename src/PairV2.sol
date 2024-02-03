@@ -13,6 +13,7 @@ import {IPairLatamSwap} from "./interfaces/IPairLatamSwap.sol";
 contract PairV2 is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
     using SafeTransferLib for address;
     using UQ112x112 for uint224;
+    using FixedPointMathLib for uint256;
 
     // 10 ** 3 = 1e3 = 1000
     uint256 public constant MINIMUM_LIQUIDITY = 1e3;
@@ -79,15 +80,11 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
     function _mintFee(uint112 _reserve0, uint112 _reserve1) private {
         uint256 _kLast = kLast; // gas savings
         if (_kLast != 0) {
-            uint256 rootK = FixedPointMathLib.sqrt(uint256(_reserve0) * uint256(_reserve1));
-            uint256 rootKLast = FixedPointMathLib.sqrt(_kLast);
+            uint256 rootK = (uint256(_reserve0) * uint256(_reserve1)).sqrt();
+            uint256 rootKLast = _kLast.sqrt();
             if (rootK > rootKLast) {
-                uint256 numerator = totalSupply() * (rootK - rootKLast);
-                uint256 denominator = rootK * 5 + rootKLast;
-                unchecked {
-                    uint256 liquidity = numerator / denominator;
-                    if (liquidity > 0) _mint(factory, liquidity);
-                }
+                uint256 liquidity = totalSupply().mulDiv((rootK - rootKLast), rootK * 5 + rootKLast);
+                if (liquidity > 0) _mint(factory, liquidity);
             }
         }
     }
@@ -103,7 +100,7 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
         _mintFee(_reserve0, _reserve1);
         uint256 _totalSupply = totalSupply(); // gas savings, must be defined here since totalSupply can update in _mintFee
         if (_totalSupply == 0) {
-            liquidity = FixedPointMathLib.sqrt(amount0 * amount1);
+            liquidity = (amount0 * amount1).sqrt();
             if (liquidity <= MINIMUM_LIQUIDITY) revert ErrLatamswapInsufficientLiquidity();
             // Previous if checks the overflow
             unchecked {
@@ -112,7 +109,8 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
             // permanently lock the first MINIMUM_LIQUIDITY tokens
             _mint(address(0), MINIMUM_LIQUIDITY);
         } else {
-            liquidity = FixedPointMathLib.min(amount0 * _totalSupply / _reserve0, amount1 * _totalSupply / _reserve1);
+            liquidity =
+                FixedPointMathLib.min(amount0.mulDiv(_totalSupply, _reserve0), amount1.mulDiv(_totalSupply, _reserve1));
         }
 
         if (liquidity == 0) revert ErrLatamswapInsufficientLiquidity();
@@ -134,12 +132,10 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
 
         _mintFee(_reserve0, _reserve1);
         uint256 _totalSupply = totalSupply(); // gas savings, must be defined here since totalSupply can update in _mintFee
-        amount0 = liquidity * balance0; // using balances ensures pro-rata distribution
-        amount1 = liquidity * balance1; // using balances ensures pro-rata distribution
-        unchecked {
-            amount0 = amount0 / _totalSupply;
-            amount1 = amount1 / _totalSupply;
-        }
+
+        amount0 = liquidity.mulDiv(balance0, _totalSupply); // using balances ensures pro-rata distribution
+        amount1 = liquidity.mulDiv(balance1, _totalSupply); // using balances ensures pro-rata distribution
+
         if (amount0 == 0 || amount1 == 0) revert ErrLatamswapInsufficientLiquidityBurned();
         _burn(address(this), liquidity);
         token0.safeTransfer(to, amount0);
@@ -182,8 +178,8 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
         if (amount0In == 0 && amount1In == 0) revert ErrLatamswapInsufficientInputAmount();
         {
             // scope for reserve{0,1}Adjusted, avoids stack too deep errors
-            uint256 balance0Adjusted = balance0 * 1_000 - (amount0In * 3);
-            uint256 balance1Adjusted = balance1 * 1_000 - (amount1In * 3);
+            uint256 balance0Adjusted = balance0 * MINIMUM_LIQUIDITY - (amount0In * 3);
+            uint256 balance1Adjusted = balance1 * MINIMUM_LIQUIDITY - (amount1In * 3);
 
             if ((balance0Adjusted * balance1Adjusted) < (uint256(_reserve0) * uint256(_reserve1) * 1_000_000)) {
                 revert ErrLatamswapWrongK();
