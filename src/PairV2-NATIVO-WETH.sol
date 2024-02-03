@@ -78,20 +78,25 @@ contract PairV2Native is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
     }
 
     // this low-level function should be called from a contract which performs important safety checks
-    function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external nonReentrant {
+    function swap(uint256 _amount0Out, uint256 _amount1Out, address to, bytes calldata data) external nonReentrant {
         if (to == token0 || to == token1) revert ErrLatamswapInvalidTo();
 
         blockTimestampLast = uint32(block.timestamp);
 
-        amount0Out = token0.balanceOf(address(this));
-        amount1Out = token1.balanceOf(address(this));
-
+        uint256 amount0Out = token0.balanceOf(address(this));
+        uint256 amount1Out = token1.balanceOf(address(this));
         if (amount1Out > 0) {
+            if (_amount0Out > amount1Out) {
+                revert ErrLatamswapInsufficientOutputAmount();
+            }
             IGenericWETH(token1).withdraw(amount1Out);
             IGenericWETH(token0).deposit{value: amount1Out}();
         }
 
         if (amount0Out > 0) {
+            if (_amount1Out > amount0Out) {
+                revert ErrLatamswapInsufficientOutputAmount();
+            }
             IGenericWETH(token0).withdraw(amount0Out);
             IGenericWETH(token1).deposit{value: amount0Out}();
         }

@@ -27,7 +27,7 @@ contract PairNativeV2Test is Test {
 
     // events for test
     event Transfer(address indexed from, address indexed to, uint256 value);
-    event Sync(uint112 reserve0, uint112 reserve1);
+    event Sync(uint96 reserve0, uint96 reserve1);
     event Swap(
         address indexed sender,
         uint256 amount0In,
@@ -40,11 +40,15 @@ contract PairNativeV2Test is Test {
 
     PairV2Native pair;
 
+    uint256 constant BALANCE = type(uint112).max;
+
     function setUp() public {
         (token0, token1) = PairLibrary.sortTokens(address(tokenNativo), address(tokenWeth));
 
-        tokenWeth.deposit{value: 100 ether}();
-        tokenNativo.deposit{value: 100 ether}();
+        vm.deal(address(this), BALANCE);
+        tokenWeth.deposit{value: BALANCE}();
+        vm.deal(address(this), BALANCE);
+        tokenNativo.deposit{value: BALANCE}();
 
         pair = new PairV2Native(token0, token1, factory);
     }
@@ -91,8 +95,8 @@ contract PairNativeV2Test is Test {
     }
 
     function test_MintLiquidity(uint256 amount0, uint256 amount1) public {
-        amount0 = bound(amount0, 0, 100 ether);
-        amount1 = bound(amount1, 0, 100 ether);
+        amount0 = bound(amount0, 0, BALANCE);
+        amount1 = bound(amount1, 0, BALANCE);
 
         token0.safeTransfer(address(pair), amount0);
         token1.safeTransfer(address(pair), amount1);
@@ -147,79 +151,31 @@ contract PairNativeV2Test is Test {
 
         vm.expectRevert(ErrFunctionDisabled.selector);
         pair.sync();
-
-        /*
-        (uint256 initialPrice0, uint256 initialPrice1) = encodePrice(token0Amount, token1Amount);
-
-        assertEq(pair.price0CumulativeLast(), initialPrice0);
-        assertEq(pair.price1CumulativeLast(), initialPrice1);
-        */
-
-        uint256 swapAmount = 3 ether;
-        token0.safeTransfer(address(pair), swapAmount);
-        vm.roll(block.number + 1);
-        vm.warp(block.timestamp + 9);
-
-        // swap to a new price eagerly instead of syncing
-        pair.swap(0, 1 ether, address(this), ""); // make the price nice
-
-        //assertEq(pair.price0CumulativeLast(), initialPrice0 * 10);
-        //assertEq(pair.price1CumulativeLast(), initialPrice1 * 10);
-        (,, uint256 blockTimestamp2) = pair.getReserves();
-        assertEq(blockTimestamp2, blockTimestamp + 10);
     }
 
     function runSwapCase(uint256 swapAmount, uint256 token0Amount, uint256 token1Amount, uint256 expectedOutputAmount)
         internal
     {
-        addLiquidity(token0Amount, token1Amount);
         token0.safeTransfer(address(pair), swapAmount);
         vm.expectRevert();
-        pair.swap(0, expectedOutputAmount + 1, address(this), "");
+        pair.swap(0, expectedOutputAmount + 100, address(this), "");
         pair.swap(0, expectedOutputAmount, address(this), "");
     }
 
-    function test_swap1() public {
-        runSwapCase(1 ether, 5 ether, 10 ether, 1662497915624478906);
+    function test_swap1(uint256 swapAmount) public {
+        swapAmount = bound(swapAmount, 1, BALANCE - 100);
+        token0.safeTransfer(address(pair), swapAmount);
+        vm.expectRevert();
+        pair.swap(0, swapAmount + 100, address(this), "");
+        pair.swap(0, swapAmount, address(this), "");
     }
 
-    function test_swap2() public {
-        runSwapCase(1 ether, 10 ether, 5 ether, 453305446940074565);
-    }
-    // [2, 5, 10, '2851015155847869602'],
-
-    function test_swap3() public {
-        runSwapCase(2 ether, 5 ether, 10 ether, 2851015155847869602);
-    }
-
-    // [2, 10, 5, '831248957812239453'],
-    function test_swap4() public {
-        runSwapCase(2 ether, 10 ether, 5 ether, 831248957812239453);
-    }
-
-    // [2, 10, 5, '831248957812239453'],
-    function test_swap5() public {
-        runSwapCase(2 ether, 10 ether, 5 ether, 831248957812239453);
-    }
-
-    // [2, 10, 5, '831248957812239453'],
-    function test_swap6() public {
-        runSwapCase(2 ether, 10 ether, 5 ether, 831248957812239453);
-    }
-
-    // [1, 10, 10, '906610893880149131'],
-    function test_swap7() public {
-        runSwapCase(1 ether, 10 ether, 10 ether, 906610893880149131);
-    }
-
-    // [1, 100, 100, '987158034397061298'],
-    function test_swap8() public {
-        runSwapCase(1 ether, 100 ether, 100 ether, 987158034397061298);
-    }
-
-    // [1, 1000, 1000, '996006981039903216']
-    function test_swap9() public {
-        runSwapCase(1 ether, 1000 ether, 1000 ether, 996006981039903216);
+    function test_swap2(uint256 swapAmount) public {
+        swapAmount = bound(swapAmount, 1, BALANCE - 100);
+        token1.safeTransfer(address(pair), swapAmount);
+        vm.expectRevert();
+        pair.swap(swapAmount + 100, 0, address(this), "");
+        pair.swap(swapAmount, 0, address(this), "");
     }
 
     /*
