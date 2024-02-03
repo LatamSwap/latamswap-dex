@@ -8,7 +8,6 @@ import {PairV2} from "./PairV2.sol";
 import {INativo} from "nativo/INativo.sol";
 
 contract LatamswapRouter is ILatamSwapRouter {
-
     using SafeTransferLib for address;
 
     address public immutable factory;
@@ -197,7 +196,7 @@ contract LatamswapRouter is ILatamSwapRouter {
     // **** SWAP ****
     // requires the initial amount to have already been sent to the first pair
     function _swap(uint256[] memory amounts, address[] calldata path, address _to) internal virtual {
-        for (uint256 i; i < path.length - 1;) {
+        for (uint256 i; i < path.length - 1; ++i) {
             (address input, address output) = (path[i], path[i + 1]);
             (address token0,) = PairLibrary.sortTokens(input, output);
             uint256 amountOut = amounts[i + 1];
@@ -205,10 +204,6 @@ contract LatamswapRouter is ILatamSwapRouter {
                 input == token0 ? (uint256(0), amountOut) : (amountOut, uint256(0));
             address to = i < path.length - 2 ? PairLibrary.pairFor(factory, output, path[i + 2]) : _to;
             PairV2(PairLibrary.pairFor(factory, input, output)).swap(amount0Out, amount1Out, to, "");
-
-            unchecked {
-                ++i;
-            }
         }
     }
 
@@ -266,7 +261,7 @@ contract LatamswapRouter is ILatamSwapRouter {
     ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
         if (path[path.length - 1] != NATIVO) revert ErrInvalidPath();
         amounts = PairLibrary.getAmountsIn(factory, amountOut, path);
-        // Overall gas change: -261368 (-1.761%)
+
         if (amounts[0] > amountInMax) revert ErrExcessiveInputAmount();
         SafeTransferLib.safeTransferFrom(
             path[0], msg.sender, PairLibrary.pairFor(factory, path[0], path[1]), amounts[0]
@@ -312,7 +307,7 @@ contract LatamswapRouter is ILatamSwapRouter {
     // **** SWAP (supporting fee-on-transfer tokens) ****
     // requires the initial amount to have already been sent to the first pair
     function _swapSupportingFeeOnTransferTokens(address[] memory path, address _to) internal virtual {
-        for (uint256 i; i < path.length - 1;) {
+        for (uint256 i; i < path.length - 1; ++i) {
             address input;
             address output;
 
@@ -336,7 +331,6 @@ contract LatamswapRouter is ILatamSwapRouter {
                     input == token0 ? (uint256(0), amountOutput) : (amountOutput, uint256(0));
                 address to = i < path.length - 2 ? PairLibrary.pairFor(factory, output, path[i + 2]) : _to;
                 pair.swap(amount0Out, amount1Out, to, "");
-                ++i;
             }
         }
     }
