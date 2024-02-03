@@ -318,6 +318,21 @@ contract PairV2Test is Test {
         */
     }
 
+    function test_swapExtraReverts() public {
+        uint256 token0Amount = 5 ether;
+        uint256 token1Amount = 5 ether;
+        addLiquidity(token0Amount, token1Amount);
+        vm.expectRevert(bytes4(keccak256("ErrLatamswapInsufficientInputAmount()")));
+        pair.swap(0, 1, address(this), "");
+
+        token0.safeTransfer(address(pair), 1);
+        vm.expectRevert(bytes4(keccak256("ErrLatamswapInvalidTo()")));
+        pair.swap(0, 1, address(token0), "");
+
+        vm.expectRevert(bytes4(keccak256("ErrLatamswapInvalidTo()")));
+        pair.swap(0, 1, address(token1), "");
+    }
+
     function runSwapCase(uint256 swapAmount, uint256 token0Amount, uint256 token1Amount, uint256 expectedOutputAmount)
         internal
     {
