@@ -136,7 +136,8 @@ library PairLibrary {
             uint256 pathLengthSub1 = path.length - 1;
             pairs[0] = pairFor(factory, path[0], path[1]);
             for (uint256 i; i < pathLengthSub1; ++i) {
-                (uint256 reserveIn, uint256 reserveOut, address pair) = getReservesAndPair(factory, path[i], path[i + 1]);
+                (uint256 reserveIn, uint256 reserveOut, address pair) =
+                    getReservesAndPair(factory, path[i], path[i + 1]);
                 amounts[i + 1] = getAmountOut(amounts[i], reserveIn, reserveOut);
                 pairs[i + 1] = pair;
             }
