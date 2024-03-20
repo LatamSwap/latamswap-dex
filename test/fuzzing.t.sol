@@ -6,7 +6,7 @@ import "forge-std/Test.sol";
 
 import {DeflatingERC20} from "./DeflatingERC20.sol";
 import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
-import {WETH} from "solmate/tokens/WETH.sol";
+import {WETH} from "solady/tokens/WETH.sol";
 
 import {ERC20} from "solady/tokens/ERC20.sol";
 import {Nativo} from "nativo/Nativo.sol";
