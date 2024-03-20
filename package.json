@@ -1,0 +1,18 @@
+{
+  "name": "latamswap-dex",
+  "version": "1.0.0",
+  "description": "LatamSwap is a decentralized exchange (DEX), inspired by Uniswap v2 but with multiple optimizations for efficiency and lower gas costs. It's designed to offer a superior DeFi experience with full compatibility with Uniswap v2, along with a suite of enhanced features.",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "eugenioclrc",
+  "license": "ISC",
+  "dependencies": {
+    "solady": "^0.0.180"
+  }
+}
