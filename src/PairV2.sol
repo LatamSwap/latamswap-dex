@@ -16,7 +16,7 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
     using FixedPointMathLib for uint256;
 
     // 10 ** 3 = 1e3 = 1000
-    uint256 public constant MINIMUM_LIQUIDITY = 1e3;
+    uint256 public constant MINIMUM_LIQUIDITY = 1000;
 
     address public immutable factory;
     address public immutable token0;

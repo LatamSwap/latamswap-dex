@@ -1,0 +1,109 @@
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.8.10;
+
+import "forge-std/Test.sol";
+
+import {PairV2} from "src/PairV2.sol";
+import {PairLibrary} from "src/PairLibrary.sol";
+import {LatamswapFactory} from "src/Factory.sol";
+import {LatamswapRouter} from "src/Router.sol";
+import {Nativo} from "lib/Nativo/src/Nativo.sol";
+import {WETH} from "solady/tokens/WETH.sol";
+import {MockToken} from "./MockToken.sol";
+
+import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
+
+contract RouterLatamSwapTest is Test {
+    using SafeTransferLib for address;
+
+    LatamswapFactory factory;
+    address router;
+    address tokenA;
+    address tokenB;
+    address pairAB;
+    address nativo;
+    address weth;
+
+    address deployer = makeAddr("deployer");
+
+    function setUp() public {
+        nativo = address(new Nativo("Nativo", "NETH", makeAddr("nativoOwner"), makeAddr("nativoOwner")));
+        weth = address(new WETH());
+
+        factory = new LatamswapFactory(deployer, address(weth), address(nativo));
+        router = address(new LatamswapRouter(address(factory), nativo));
+
+        tokenA = address(new MockToken());
+        tokenB = address(new MockToken());
+        vm.label(tokenA, "tokenA");
+        vm.label(tokenB, "tokenB");
+
+        deal(address(tokenA), address(this), 1000 ether);
+        deal(address(tokenB), address(this), 1000 ether);
+
+        tokenA.safeApprove(address(router), type(uint256).max);
+        tokenB.safeApprove(address(router), type(uint256).max);
+    }
+
+    function testSimple() public {
+        LatamswapRouter(router).addLiquidity(
+            address(tokenA), address(tokenB), 100 ether, 100 ether, 0, 0, address(this), block.timestamp + 1000
+        );
+
+        address pair = factory.getPair(tokenA, tokenB);
+
+        assertEq(tokenA.balanceOf(pair), 100 ether);
+        assertEq(tokenB.balanceOf(pair), 100 ether);
+
+        address receiver = makeAddr("receiver");
+
+        vm.expectRevert();
+        LatamswapRouter(router).addLiquidityTokenA(
+            tokenA, tokenB, 1 ether, 0.5 ether, makeAddr("receiver"), block.timestamp + 1000
+        );
+
+        (uint256 amountA, uint256 amountB, uint256 liquidity) = LatamswapRouter(router).addLiquidityTokenA(
+            tokenA, tokenB, 1 ether, 0, makeAddr("receiver"), block.timestamp + 1000
+        );
+
+        assertEq(tokenA.balanceOf(pair), 101 ether);
+        assertEq(tokenB.balanceOf(pair), 100 ether);
+
+        assertGt(PairV2(pair).balanceOf(receiver), 0);
+        assertEq(PairV2(pair).balanceOf(receiver), liquidity);
+    }
+
+    function testImbalanced() public {
+        LatamswapRouter(router).addLiquidity(
+            address(tokenA), address(tokenB), 10 ether, 100 ether, 0, 0, address(this), block.timestamp + 1000
+        );
+
+        address pair = factory.getPair(tokenA, tokenB);
+
+        assertEq(tokenA.balanceOf(pair), 10 ether);
+        assertEq(tokenB.balanceOf(pair), 100 ether);
+
+        address receiver = makeAddr("receiver");
+
+        vm.expectRevert();
+        LatamswapRouter(router).addLiquidityTokenA(
+            tokenA, tokenB, 1 ether, 9 ether, makeAddr("receiver"), block.timestamp + 1000
+        );
+
+        (uint256 amountA, uint256 amountB, uint256 liquidity) =
+            LatamswapRouter(router).addLiquidityTokenA(tokenA, tokenB, 1 ether, 0, receiver, block.timestamp + 1000);
+        assertEq(tokenA.balanceOf(pair), 11 ether);
+        assertEq(tokenB.balanceOf(pair), 100 ether);
+
+        assertEq(PairV2(pair).balanceOf(receiver), liquidity);
+
+        address receiver2 = makeAddr("receiver2");
+
+        (amountA, amountB, liquidity) =
+            LatamswapRouter(router).addLiquidityTokenA(tokenB, tokenA, 1 ether, 0, receiver2, block.timestamp + 1000);
+        assertEq(tokenA.balanceOf(pair), 11 ether);
+        assertEq(tokenB.balanceOf(pair), 101 ether);
+
+        assertEq(PairV2(pair).balanceOf(receiver2), liquidity);
+    }
+}

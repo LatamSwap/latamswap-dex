@@ -76,36 +76,37 @@ contract LatamswapRouter is ILatamSwapRouter {
         address tokenA,
         address tokenB,
         uint256 amountADesired,
-        uint256 amountAMin,
+        uint256 amountBMin,
         address to,
         uint256 deadline
     ) external ensure(deadline) returns (uint256 amountA, uint256 amountB, uint256 liquidity) {
-        address pair;
-        /*
-        @todo : implement this function
-        (amountA, amountB, pair) = _addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin);
-        SafeTransferLib.safeTransferFrom(tokenA, msg.sender, pair, amountA);
-        SafeTransferLib.safeTransferFrom(tokenB, msg.sender, pair, amountB);
-        liquidity = PairV2(pair).mint(to);
-        */
-    }
+        // reserveIn = reserveA, reserveOut = reserveB
+        uint256 half = amountADesired / 2;
+        amountA = amountADesired - half;
+        (uint256 reserveIn, uint256 reserveOut, address pair) = PairLibrary.getReservesAndPair(factory, tokenA, tokenB);
 
-    function addLiquidityTokenB(
-        address tokenA,
-        address tokenB,
-        uint256 amountBDesired,
-        uint256 amountAMin,
-        address to,
-        uint256 deadline
-    ) external ensure(deadline) returns (uint256 amountA, uint256 amountB, uint256 liquidity) {
-        address pair;
-        /*
-        @todo : implement this function
-        (amountA, amountB, pair) = _addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin);
+        (address token0,) = PairLibrary.sortTokens(tokenA, tokenB);
+        if (tokenA != token0) {
+            (reserveIn, reserveOut) = (reserveOut, reserveIn);
+        }
+
+        amountB = PairLibrary.getAmountOut(half, reserveIn, reserveOut);
+        if (amountBMin > amountB) revert ErrInsufficientAmountB();
+
+        SafeTransferLib.safeTransferFrom(tokenA, msg.sender, pair, half);
+
+        if (tokenA == token0) {
+            PairV2(pair).swap(0, amountB, address(this), "");
+        } else {
+            PairV2(pair).swap(amountB, 0, address(this), "");
+        }
         SafeTransferLib.safeTransferFrom(tokenA, msg.sender, pair, amountA);
-        SafeTransferLib.safeTransferFrom(tokenB, msg.sender, pair, amountB);
+        SafeTransferLib.safeTransferAll(tokenB, pair);
+
         liquidity = PairV2(pair).mint(to);
-        */
+
+        SafeTransferLib.safeTransferAll(tokenA, msg.sender);
+        SafeTransferLib.safeTransferAll(tokenB, msg.sender);
     }
 
     function addLiquidityETH(
@@ -174,9 +175,9 @@ contract LatamswapRouter is ILatamSwapRouter {
     ) external returns (uint256 amountA, uint256 amountB) {
         address pair = PairLibrary.pairFor(factory, tokenA, tokenB);
         uint256 value = approveMax ? type(uint256).max : liquidity;
-        
+
         // @dev try catch to avoid front-running attack.
-        //      more info: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/7bd2b2aaf68c21277097166a9a51eb72ae239b34/contracts/token/ERC20/extensions/IERC20Permit.sol#L14-L41 
+        //      more info: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/7bd2b2aaf68c21277097166a9a51eb72ae239b34/contracts/token/ERC20/extensions/IERC20Permit.sol#L14-L41
         try PairV2(pair).permit(msg.sender, address(this), value, deadline, v, r, s) {} catch {}
         (amountA, amountB) = removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, to, deadline);
     }
@@ -195,9 +196,9 @@ contract LatamswapRouter is ILatamSwapRouter {
     ) external returns (uint256 amountToken, uint256 amountETH) {
         address pair = PairLibrary.pairFor(factory, token, NATIVO);
         uint256 value = approveMax ? type(uint256).max : liquidity;
-       
+
         // @dev try catch to avoid front-running attack.
-        //      more info: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/7bd2b2aaf68c21277097166a9a51eb72ae239b34/contracts/token/ERC20/extensions/IERC20Permit.sol#L14-L41 
+        //      more info: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/7bd2b2aaf68c21277097166a9a51eb72ae239b34/contracts/token/ERC20/extensions/IERC20Permit.sol#L14-L41
         try PairV2(pair).permit(msg.sender, address(this), value, deadline, v, r, s) {} catch {}
         (amountToken, amountETH) = removeLiquidityETH(token, liquidity, amountTokenMin, amountETHMin, to, deadline);
     }
@@ -231,7 +232,7 @@ contract LatamswapRouter is ILatamSwapRouter {
         address pair = PairLibrary.pairFor(factory, token, NATIVO);
         uint256 value = approveMax ? type(uint256).max : liquidity;
         // @dev try catch to avoid front-running attack.
-        //      more info: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/7bd2b2aaf68c21277097166a9a51eb72ae239b34/contracts/token/ERC20/extensions/IERC20Permit.sol#L14-L41    
+        //      more info: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/7bd2b2aaf68c21277097166a9a51eb72ae239b34/contracts/token/ERC20/extensions/IERC20Permit.sol#L14-L41
         try PairV2(pair).permit(msg.sender, address(this), value, deadline, v, r, s) {} catch {}
         amountETH = removeLiquidityETHSupportingFeeOnTransferTokens(
             token, liquidity, amountTokenMin, amountETHMin, to, deadline
@@ -252,13 +253,25 @@ contract LatamswapRouter is ILatamSwapRouter {
         }
     }
 
-        // **** SWAP ****
+    // **** SWAP ****
+
+    function _swapSingle(uint256 amountOut, address pair, address tokenFrom, address tokenTo, address _to) internal {
+        (address input, address output) = (tokenFrom, tokenTo);
+        (address token0,) = PairLibrary.sortTokens(input, output);
+        (uint256 amount0Out, uint256 amount1Out) = input == token0 ? (uint256(0), amountOut) : (amountOut, uint256(0));
+        PairV2(pair).swap(amount0Out, amount1Out, _to, "");
+    }
+
     // requires the initial amount to have already been sent to the first pair
-    function _swap(uint256[] memory amounts, address[] memory pairs, address[] calldata path, address _to) internal virtual {
+    function _swap(uint256[] memory amounts, address[] memory pairs, address[] calldata path, address _to)
+        internal
+        virtual
+    {
         for (uint256 i; i < path.length - 1; ++i) {
             (address input, address output) = (path[i], path[i + 1]);
             (address token0,) = PairLibrary.sortTokens(input, output);
             uint256 amountOut = amounts[i + 1];
+
             (uint256 amount0Out, uint256 amount1Out) =
                 input == token0 ? (uint256(0), amountOut) : (amountOut, uint256(0));
             address to = i < path.length - 2 ? pairs[i + 1] : _to;
@@ -277,9 +290,7 @@ contract LatamswapRouter is ILatamSwapRouter {
         (amounts, pairs) = PairLibrary.getAmountsOutAndPairs(factory, amountIn, path);
 
         if (amounts[amounts.length - 1] < amountOutMin) revert ErrInsufficientOutputAmount();
-        path[0].safeTransferFrom(
-            msg.sender, pairs[0], amounts[0]
-        );
+        path[0].safeTransferFrom(msg.sender, pairs[0], amounts[0]);
         _swap(amounts, pairs, path, to);
     }
 
@@ -291,11 +302,9 @@ contract LatamswapRouter is ILatamSwapRouter {
         uint256 deadline
     ) external ensure(deadline) returns (uint256[] memory amounts) {
         address[] memory pairs;
-        (amounts,pairs) = PairLibrary.getAmountsOutAndPairs(factory, amountOut, path);
+        (amounts, pairs) = PairLibrary.getAmountsOutAndPairs(factory, amountOut, path);
         if (amounts[0] > amountInMax) revert ErrExcessiveInputAmount();
-        path[0].safeTransferFrom(
-            msg.sender, PairLibrary.pairFor(factory, path[0], path[1]), amounts[0]
-        );
+        path[0].safeTransferFrom(msg.sender, PairLibrary.pairFor(factory, path[0], path[1]), amounts[0]);
         _swap(amounts, pairs, path, to);
     }
 
@@ -325,9 +334,7 @@ contract LatamswapRouter is ILatamSwapRouter {
         amounts = PairLibrary.getAmountsIn(factory, amountOut, path);
 
         if (amounts[0] > amountInMax) revert ErrExcessiveInputAmount();
-        path[0].safeTransferFrom(
-            msg.sender, PairLibrary.pairFor(factory, path[0], path[1]), amounts[0]
-        );
+        path[0].safeTransferFrom(msg.sender, PairLibrary.pairFor(factory, path[0], path[1]), amounts[0]);
         _swap(amounts, path, address(this));
         INativo(payable(NATIVO)).withdrawTo(to, amounts[amounts.length - 1]);
     }
@@ -342,9 +349,7 @@ contract LatamswapRouter is ILatamSwapRouter {
         if (path[path.length - 1] != NATIVO) revert ErrInvalidPath();
         amounts = PairLibrary.getAmountsOut(factory, amountIn, path);
         if (amounts[amounts.length - 1] < amountOutMin) revert ErrInsufficientOutputAmount();
-        path[0].safeTransferFrom(
-            msg.sender, PairLibrary.pairFor(factory, path[0], path[1]), amounts[0]
-        );
+        path[0].safeTransferFrom(msg.sender, PairLibrary.pairFor(factory, path[0], path[1]), amounts[0]);
         _swap(amounts, path, address(this));
         INativo(payable(NATIVO)).withdrawTo(to, amounts[amounts.length - 1]);
     }
