@@ -45,6 +45,18 @@ contract RouterLatamSwapTest is Test {
         tokenB.safeApprove(address(router), type(uint256).max);
     }
 
+    function testAddLiquidityETH(bool createPair) public {
+        if(createPair) factory.createPair(tokenA, nativo);
+        LatamswapRouter(router).addLiquidityETH{value: 1 ether}(
+            address(tokenA), 1 ether, 0, 0, address(this), block.timestamp + 1000
+        );
+
+        address pair = factory.getPair(tokenA, nativo);
+
+        assertEq(tokenA.balanceOf(pair), 1 ether);
+        assertEq(nativo.balanceOf(pair), 1 ether);
+    }
+
     function testSimple() public {
         LatamswapRouter(router).addLiquidity(
             address(tokenA), address(tokenB), 100 ether, 100 ether, 0, 0, address(this), block.timestamp + 1000

@@ -41,7 +41,10 @@ contract LatamswapRouter is ILatamSwapRouter {
             (amountA, amountB) = (amountADesired, amountBDesired);
         } else {
             (uint256 reserveA, uint256 reserveB) = PairLibrary.getReservesPair(pair, tokenA, tokenB);
-
+            // token pair exists but no liquidity has been added yet
+            if (reserveA == 0 && reserveB == 0) {
+                return (amountADesired, amountBDesired, pair);
+            }
             uint256 amountBOptimal = PairLibrary.quote(amountADesired, reserveA, reserveB);
             if (amountBOptimal > amountBDesired) {
                 uint256 amountAOptimal = PairLibrary.quote(amountBDesired, reserveB, reserveA);

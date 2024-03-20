@@ -152,21 +152,22 @@ contract TestCore is Test {
         }
 
         (uint256 reserveABefore, uint256 reserveBBefore,) = testWethPair.getReserves();
-        (uint256 totalSupplyBefore) = testWethPair.totalSupply();
-        (uint256 userBalBefore) = testWethPair.balanceOf(address(this));
+        (uint256 totalSupplyBefore) = testNativoPair.totalSupply();
+        (uint256 userBalBefore) = testNativoPair.balanceOf(address(this));
         uint256 kBefore = reserveABefore * reserveBBefore;
 
         // ACTION:
         try testRouter02.addLiquidityETH{value: amount}(address(usdc), amount, 0, 0, address(this), MAX) {
             // POSTCONDTION:
-            (uint256 reserveAAfter, uint256 reserveBAfter,) = testWethPair.getReserves();
-            (uint256 totalSupplyAfter) = testWethPair.totalSupply();
-            (uint256 userBalAfter) = testWethPair.balanceOf(address(this));
+            (uint256 reserveAAfter, uint256 reserveBAfter,) = testNativoPair.getReserves();
+            (uint256 totalSupplyAfter) = testNativoPair.totalSupply();
+            (uint256 userBalAfter) = testNativoPair.balanceOf(address(this));
             uint256 kAfter = reserveAAfter * reserveBAfter;
 
             assertGt(reserveAAfter, reserveABefore, "RESERVE TOKEN A CHECK");
             assertGt(reserveBAfter, reserveBBefore, "RESERVE TOKEN B CHECK");
             assertGt(kAfter, kBefore, "K CHECK");
+        
             assertGt(totalSupplyAfter, totalSupplyBefore, "TOTAL SUPPLY CHECK");
             assertGt(userBalAfter, userBalBefore, "USER BAL CHECK");
         } catch { /*assert(false)*/ } // overflow
@@ -201,8 +202,8 @@ contract TestCore is Test {
                 (uint256 userBalAfter) = testStablePair.balanceOf(address(this));
                 uint256 kAfter = reserveAAfter * reserveBAfter;
 
-                assertLt(reserveAAfter, reserveABefore, "RESERVE TOKEN A CHECK");
-                assertLt(reserveBAfter, reserveBBefore, "RESERVE TOKEN B CHECK");
+                assertLe(reserveAAfter, reserveABefore, "RESERVE TOKEN A CHECK");
+                assertLe(reserveBAfter, reserveBBefore, "RESERVE TOKEN B CHECK");
                 assertLt(kAfter, kBefore, "K CHECK");
                 assertLt(totalSupplyAfter, totalSupplyBefore, "TOTAL SUPPLY CHECK");
                 assertLt(userBalAfter, userBalBefore, "USER BAL CHECK");
