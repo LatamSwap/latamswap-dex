@@ -137,7 +137,10 @@ contract LatamswapRouter is ILatamSwapRouter {
     ) external returns (uint256 amountA, uint256 amountB) {
         address pair = PairLibrary.pairFor(factory, tokenA, tokenB);
         uint256 value = approveMax ? type(uint256).max : liquidity;
-        PairV2(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+
+        // @dev try catch to avoid front-running attack.
+        //      more info: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/7bd2b2aaf68c21277097166a9a51eb72ae239b34/contracts/token/ERC20/extensions/IERC20Permit.sol#L14-L41
+        try PairV2(pair).permit(msg.sender, address(this), value, deadline, v, r, s) {} catch {}
         (amountA, amountB) = removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, to, deadline);
     }
 
@@ -155,7 +158,10 @@ contract LatamswapRouter is ILatamSwapRouter {
     ) external returns (uint256 amountToken, uint256 amountETH) {
         address pair = PairLibrary.pairFor(factory, token, NATIVO);
         uint256 value = approveMax ? type(uint256).max : liquidity;
-        PairV2(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+
+        // @dev try catch to avoid front-running attack.
+        //      more info: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/7bd2b2aaf68c21277097166a9a51eb72ae239b34/contracts/token/ERC20/extensions/IERC20Permit.sol#L14-L41
+        try PairV2(pair).permit(msg.sender, address(this), value, deadline, v, r, s) {} catch {}
         (amountToken, amountETH) = removeLiquidityETH(token, liquidity, amountTokenMin, amountETHMin, to, deadline);
     }
 
@@ -187,7 +193,9 @@ contract LatamswapRouter is ILatamSwapRouter {
     ) external returns (uint256 amountETH) {
         address pair = PairLibrary.pairFor(factory, token, NATIVO);
         uint256 value = approveMax ? type(uint256).max : liquidity;
-        PairV2(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+        // @dev try catch to avoid front-running attack.
+        //      more info: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/7bd2b2aaf68c21277097166a9a51eb72ae239b34/contracts/token/ERC20/extensions/IERC20Permit.sol#L14-L41
+        try PairV2(pair).permit(msg.sender, address(this), value, deadline, v, r, s) {} catch {}
         amountETH = removeLiquidityETHSupportingFeeOnTransferTokens(
             token, liquidity, amountTokenMin, amountETHMin, to, deadline
         );
