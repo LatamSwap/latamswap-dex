@@ -93,7 +93,7 @@ contract LatamswapFactory is Ownable {
      * @param to The recipient address.
      */
     function withdraw(address token, address to) external onlyOwner {
-        token.safeTransfer(to, token.balanceOf(address(this)));
+        token.safeTransferAll(to);
     }
 
     /**
