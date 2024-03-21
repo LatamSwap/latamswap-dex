@@ -38,17 +38,29 @@ contract RouterLatamSwapTest is Test {
         vm.label(tokenA, "tokenA");
         vm.label(tokenB, "tokenB");
 
-        deal(address(tokenA), address(this), 1000 ether);
-        deal(address(tokenB), address(this), 1000 ether);
+        deal(tokenA, address(this), 1000 ether);
+        deal(tokenB, address(this), 1000 ether);
 
         tokenA.safeApprove(address(router), type(uint256).max);
         tokenB.safeApprove(address(router), type(uint256).max);
     }
 
+    function testAddLiquidity(bool createPair) public {
+        if(createPair) factory.createPair(tokenA, tokenB);
+        LatamswapRouter(router).addLiquidity(
+            tokenA, tokenB, 1 ether, 1 ether, 0, 0, address(this), block.timestamp + 1000
+        );
+
+        address pair = factory.getPair(tokenA, tokenB);
+
+        assertEq(tokenA.balanceOf(pair), 1 ether);
+        assertEq(tokenB.balanceOf(pair), 1 ether);
+    }
+
     function testAddLiquidityETH(bool createPair) public {
         if(createPair) factory.createPair(tokenA, nativo);
         LatamswapRouter(router).addLiquidityETH{value: 1 ether}(
-            address(tokenA), 1 ether, 0, 0, address(this), block.timestamp + 1000
+            tokenA, 1 ether, 0, 0, address(this), block.timestamp + 1000
         );
 
         address pair = factory.getPair(tokenA, nativo);
@@ -59,7 +71,7 @@ contract RouterLatamSwapTest is Test {
 
     function testSimple() public {
         LatamswapRouter(router).addLiquidity(
-            address(tokenA), address(tokenB), 100 ether, 100 ether, 0, 0, address(this), block.timestamp + 1000
+            tokenA, tokenB, 100 ether, 100 ether, 0, 0, address(this), block.timestamp + 1000
         );
 
         address pair = factory.getPair(tokenA, tokenB);
@@ -87,7 +99,7 @@ contract RouterLatamSwapTest is Test {
 
     function testImbalanced() public {
         LatamswapRouter(router).addLiquidity(
-            address(tokenA), address(tokenB), 10 ether, 100 ether, 0, 0, address(this), block.timestamp + 1000
+            tokenA, tokenB, 10 ether, 100 ether, 0, 0, address(this), block.timestamp + 1000
         );
 
         address pair = factory.getPair(tokenA, tokenB);

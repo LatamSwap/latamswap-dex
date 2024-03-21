@@ -257,14 +257,6 @@ contract LatamswapRouter is ILatamSwapRouter {
     }
 
     // **** SWAP ****
-
-    function _swapSingle(uint256 amountOut, address pair, address tokenFrom, address tokenTo, address _to) internal {
-        (address input, address output) = (tokenFrom, tokenTo);
-        (address token0,) = PairLibrary.sortTokens(input, output);
-        (uint256 amount0Out, uint256 amount1Out) = input == token0 ? (uint256(0), amountOut) : (amountOut, uint256(0));
-        PairV2(pair).swap(amount0Out, amount1Out, _to, "");
-    }
-
     // requires the initial amount to have already been sent to the first pair
     function _swap(uint256[] memory amounts, address[] memory pairs, address[] calldata path, address _to)
         internal
