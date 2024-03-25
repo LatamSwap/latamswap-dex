@@ -10,7 +10,7 @@ import {IUniswapV2Pair} from "v2-core/interfaces/IUniswapV2Pair.sol";
 import {UQ112x112} from "src/utils/UQ112x112.sol";
 import {PairV2} from "src/PairV2.sol";
 import {PairLibrary} from "src/PairLibrary.sol";
-
+import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
 contract MockFactory {
     address public feeTo;
@@ -43,6 +43,8 @@ contract MockUser {
 }
 
 contract PairFuzzTest is Test {
+    using SafeTransferLib for address;
+
     MockERC20 public token0 = new MockERC20("UnifapToken0", "UT0", 18);
     MockERC20 public token1 = new MockERC20("UnifapToken1", "UT1", 18);
     MockERC20 public token2 = new MockERC20("UnifapToken0", "UT0", 18);
@@ -71,24 +73,64 @@ contract PairFuzzTest is Test {
         pairLatam = new PairV2(address(token2), address(token3), factory);
     }
 
-    function test_addLiquidity() public {
-        uint256 amount0 = 1000e18;
-        uint256 amount1 = 1000e18;
-        uint256 amount2 = 1000e18;
-        uint256 amount3 = 1000e18;
+    function test_addLiquidity(uint256 amountA, uint256 amountB, bool invert) public {
+        (address tokenUniA, address tokenUniB) = PairLibrary.sortTokens(address(token0), address(token1));
+        (address tokenLatamA, address tokenLatamB) = PairLibrary.sortTokens(address(token2), address(token3));
 
-        deal(address(token0), address(userUni), amount0);
-        deal(address(token1), address(userUni), amount1);
-        deal(address(token2), address(userLatam), amount2);
-        deal(address(token3), address(userLatam), amount3);
+        deal(address(tokenUniA), address(userUni), amountA);
+        deal(address(tokenUniB), address(userUni), amountB);
+        deal(address(tokenLatamA), address(userLatam), amountA);
+        deal(address(tokenLatamB), address(userLatam), amountB);
 
-        userUni.addLiquidity(address(pairUni), address(token0), address(token1), amount0, amount1);
-        userLatam.addLiquidity(address(pairLatam), address(token2), address(token3), amount2, amount3);
+        try 
+            userUni.addLiquidity(address(pairUni), address(token0), address(token1), amountA, amountB) {
 
-        assertEq(token0.balanceOf(address(pairUni)), amount0);
-        assertEq(token1.balanceOf(address(pairUni)), amount1);
-        assertEq(token2.balanceOf(address(pairLatam)), amount2);
-        assertEq(token3.balanceOf(address(pairLatam)), amount3);
+            } catch  {
+            vm.expectRevert();
+            userLatam.addLiquidity(address(pairLatam), address(token2), address(token3), amountA, amountB);
+            return;
+        }
+
+        if(invert) {
+            userLatam.addLiquidity(address(pairLatam), address(token3), address(token2), amountA, amountB);
+        } else {
+            userLatam.addLiquidity(address(pairLatam), address(token2), address(token3), amountA, amountB);
+        }
+        assertEq(tokenUniA.balanceOf(address(pairUni)), tokenLatamA.balanceOf(address(pairLatam)));
+        assertEq(tokenUniB.balanceOf(address(pairUni)), tokenLatamB.balanceOf(address(pairLatam)));
         assertEq(pairUni.balanceOf(address(userUni)), pairLatam.balanceOf(address(userLatam)));
+
+        
+        (, bytes memory r1) = address(pairUni).call(abi.encodeWithSelector(pairUni.getReserves.selector));
+        (, bytes memory r2) = address(pairLatam).call(abi.encodeWithSelector(pairUni.getReserves.selector));
+        assertEq(
+            abi.encodePacked(r1),
+            abi.encodePacked(r2)
+        );
+
+        deal(address(tokenUniA), address(userUni), amountA);
+        deal(address(tokenUniB), address(userUni), amountB);
+        deal(address(tokenLatamA), address(userLatam), amountA);
+        deal(address(tokenLatamB), address(userLatam), amountB);
+
+
+        userUni.addLiquidity(address(pairUni), address(token0), address(token1), amountA, amountB);
+
+
+        if(!invert) {
+            userLatam.addLiquidity(address(pairLatam), address(token3), address(token2), amountA, amountB);
+        } else {
+            userLatam.addLiquidity(address(pairLatam), address(token2), address(token3), amountA, amountB);
+        }
+        assertEq(tokenUniA.balanceOf(address(pairUni)), tokenLatamA.balanceOf(address(pairLatam)));
+        assertEq(tokenUniB.balanceOf(address(pairUni)), tokenLatamB.balanceOf(address(pairLatam)));
+        assertEq(pairUni.balanceOf(address(userUni)), pairLatam.balanceOf(address(userLatam)));
+        
+        (,  r1) = address(pairUni).call(abi.encodeWithSelector(pairUni.getReserves.selector));
+        (, r2) = address(pairLatam).call(abi.encodeWithSelector(pairUni.getReserves.selector));
+        assertEq(
+            abi.encodePacked(r1),
+            abi.encodePacked(r2)
+        );
     }
 }
