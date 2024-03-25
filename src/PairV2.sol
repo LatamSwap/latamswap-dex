@@ -70,6 +70,7 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
 
             reserve0 = _balance0;
             reserve1 = _balance1;
+            /// @dev max value for uint32 is 4294967295 = 7/feb/2106
             blockTimestampLast = uint32(block.timestamp);
         }
 
