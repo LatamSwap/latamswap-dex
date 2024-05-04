@@ -12,11 +12,11 @@ import {ERC20} from "solady/tokens/ERC20.sol";
 import {Nativo} from "nativo/Nativo.sol";
 
 // Pair factory and Pair
-import {LatamswapFactory} from "src/Factory.sol";
-import {PairV2} from "src/PairV2.sol";
-import {PairLibrary} from "src/PairLibrary.sol";
+import {LatamswapFactory} from "../src/Factory.sol";
+import {PairV2} from "../src/PairV2.sol";
+import {PairLibrary} from "../src/PairLibrary.sol";
 // Routerss
-import {LatamswapRouter} from "src/Router.sol";
+import {LatamswapRouter} from "../src/Router.sol";
 
 contract TestCore is Test {
     uint256 MAX = type(uint256).max;

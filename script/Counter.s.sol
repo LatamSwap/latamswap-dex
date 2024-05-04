@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
-import {LatamswapFactory} from "src/Factory.sol";
-import {LatamswapRouter} from "src/Router.sol";
+import {LatamswapFactory} from "../src/Factory.sol";
+import {LatamswapRouter} from "../src/Router.sol";
 import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {Multicall2, Build} from "./multicall.sol";
 

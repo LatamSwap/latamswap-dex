@@ -5,9 +5,9 @@ import "forge-std/Test.sol";
 
 import "./helper/BasePairTest.sol";
 
-import {PairV2Native} from "src/PairV2-NATIVO-WETH.sol";
-import {PairLibrary} from "src/PairLibrary.sol";
-import {Nativo} from "lib/Nativo/src/Nativo.sol";
+import {PairV2Native} from "../src/PairV2-NATIVO-WETH.sol";
+import {PairLibrary} from "../src/PairLibrary.sol";
+import {Nativo} from "nativo/Nativo.sol";
 import {WETH} from "solady/tokens/WETH.sol";
 
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";

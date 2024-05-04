@@ -3,11 +3,11 @@ pragma solidity >=0.8.10;
 
 import "forge-std/Test.sol";
 
-import {PairV2} from "src/PairV2.sol";
-import {PairLibrary} from "src/PairLibrary.sol";
-import {LatamswapFactory} from "src/Factory.sol";
-import {LatamswapRouter} from "src/Router.sol";
-import {Nativo} from "lib/Nativo/src/Nativo.sol";
+import {PairV2} from "../src/PairV2.sol";
+import {PairLibrary} from "../src/PairLibrary.sol";
+import {LatamswapFactory} from "../src/Factory.sol";
+import {LatamswapRouter} from "../src/Router.sol";
+import {Nativo} from "nativo/Nativo.sol";
 import {WETH} from "solady/tokens/WETH.sol";
 import {MockToken} from "./MockToken.sol";
 
