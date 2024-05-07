@@ -128,7 +128,9 @@ contract LatamswapRouter is ILatamSwapRouter {
         INativo(payable(NATIVO)).depositTo{value: amountETH}(pair);
         liquidity = PairV2(pair).mint(to);
         // refund dust eth, if any
-        if (msg.value > amountETH) msg.sender.safeTransferETH(msg.value - amountETH);
+        unchecked {
+            if (msg.value > amountETH) msg.sender.safeTransferETH(msg.value - amountETH);
+        }
     }
 
     // **** REMOVE LIQUIDITY ****
@@ -364,7 +366,9 @@ contract LatamswapRouter is ILatamSwapRouter {
         INativo(payable(NATIVO)).depositTo{value: amounts[0]}(PairLibrary.pairFor(factory, path[0], path[1]));
         _swap(amounts, path, to);
         // refund dust eth, if any
-        if (msg.value > amounts[0]) SafeTransferLib.safeTransferETH(msg.sender, msg.value - amounts[0]);
+        unchecked {
+            if (msg.value > amounts[0]) SafeTransferLib.safeTransferETH(msg.sender, msg.value - amounts[0]);
+        }
     }
 
     // **** SWAP (supporting fee-on-transfer tokens) ****
