@@ -297,11 +297,10 @@ contract LatamswapRouter is ILatamSwapRouter {
         address to,
         uint256 deadline
     ) external ensure(deadline) returns (uint256[] memory amounts) {
-        address[] memory pairs;
-        (amounts, pairs) = PairLibrary.getAmountsOutAndPairs(factory, amountOut, path);
+        amounts = PairLibrary.getAmountsIn(factory, amountOut, path);
         if (amounts[0] > amountInMax) revert ErrExcessiveInputAmount();
         path[0].safeTransferFrom(msg.sender, PairLibrary.pairFor(factory, path[0], path[1]), amounts[0]);
-        _swap(amounts, pairs, path, to);
+        _swap(amounts, path, to);
     }
 
     function swapExactETHForTokens(uint256 amountOutMin, address[] calldata path, address to, uint256 deadline)
