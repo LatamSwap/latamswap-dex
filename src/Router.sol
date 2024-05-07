@@ -52,7 +52,6 @@ contract LatamswapRouter is ILatamSwapRouter {
                 if (amountAOptimal < amountAMin) revert ErrInsufficientAmountA();
                 (amountA, amountB) = (amountAOptimal, amountBDesired);
             } else {
-                if (amountBOptimal > amountBDesired) revert ErrInsufficientQuoteB();
                 if (amountBOptimal < amountBMin) revert ErrInsufficientAmountB();
                 (amountA, amountB) = (amountADesired, amountBOptimal);
             }
