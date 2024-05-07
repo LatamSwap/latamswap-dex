@@ -46,7 +46,7 @@ contract RouterLatamSwapTest is Test {
     }
 
     function testAddLiquidity(bool createPair) public {
-        if(createPair) factory.createPair(tokenA, tokenB);
+        if (createPair) factory.createPair(tokenA, tokenB);
         LatamswapRouter(router).addLiquidity(
             tokenA, tokenB, 1 ether, 1 ether, 0, 0, address(this), block.timestamp + 1000
         );
@@ -58,7 +58,7 @@ contract RouterLatamSwapTest is Test {
     }
 
     function testAddLiquidityETH(bool createPair) public {
-        if(createPair) factory.createPair(tokenA, nativo);
+        if (createPair) factory.createPair(tokenA, nativo);
         LatamswapRouter(router).addLiquidityETH{value: 1 ether}(
             tokenA, 1 ether, 0, 0, address(this), block.timestamp + 1000
         );

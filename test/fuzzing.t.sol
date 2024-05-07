@@ -167,7 +167,7 @@ contract TestCore is Test {
             assertGt(reserveAAfter, reserveABefore, "RESERVE TOKEN A CHECK");
             assertGt(reserveBAfter, reserveBBefore, "RESERVE TOKEN B CHECK");
             assertGt(kAfter, kBefore, "K CHECK");
-        
+
             assertGt(totalSupplyAfter, totalSupplyBefore, "TOTAL SUPPLY CHECK");
             assertGt(userBalAfter, userBalBefore, "USER BAL CHECK");
         } catch { /*assert(false)*/ } // overflow
@@ -598,12 +598,12 @@ contract TestCore is Test {
             vm.deal(address(this), 100 ether);
             weth.deposit{value: 100 ether}();
             weth.transfer(address(testWethPair), 100);
-            
+
             // @notice realted to SyncExploit.t.sol
             if (weth.balanceOf(address(testWethPair)) == 0 || usdc.balanceOf(address(testWethPair)) == 0) {
-               vm.expectRevert();
-               testWethPair.sync();
-               return;
+                vm.expectRevert();
+                testWethPair.sync();
+                return;
             }
         }
         address[] memory path = new address[](2);
@@ -641,7 +641,6 @@ contract TestCore is Test {
     function testFuzz_swapTokensForExactETH(uint256 amount) public {
         // PRECONDITIONS:
         uint256 _amount = bound(amount, 1, MAX);
-        
 
         if (!setETH) {
             _initETH(_amount);
@@ -651,14 +650,12 @@ contract TestCore is Test {
             weth.deposit{value: 100 ether}();
             weth.transfer(address(testWethPair), 100);
 
-
             if (usdc.balanceOf(address(testWethPair)) == 0 || weth.balanceOf(address(testWethPair)) == 0) {
-               vm.expectRevert();
-               testWethPair.sync();
-               return;
+                vm.expectRevert();
+                testWethPair.sync();
+                return;
             }
             testWethPair.sync();
-            
         }
         address[] memory path = new address[](2);
         path[0] = address(usdc);
@@ -696,7 +693,6 @@ contract TestCore is Test {
         // PRECONDITIONS:
         uint256 _amount = bound(amount, 1, MAX);
 
-        
         if (!setETH) {
             _initETH(_amount);
             // For some reserves
@@ -706,12 +702,11 @@ contract TestCore is Test {
             weth.transfer(address(testWethPair), 100);
 
             if (usdc.balanceOf(address(testWethPair)) == 0 || weth.balanceOf(address(testWethPair)) == 0) {
-               vm.expectRevert();
-               testWethPair.sync();
-               return;
+                vm.expectRevert();
+                testWethPair.sync();
+                return;
             }
             testWethPair.sync();
-            
         }
         address[] memory path = new address[](2);
         path[0] = address(usdc);
@@ -749,7 +744,6 @@ contract TestCore is Test {
         // PRECONDITIONS:
         uint256 _amount = bound(amount, 1, MAX);
 
-        
         if (!setETH) {
             _initETH(_amount);
             // For some reserves
@@ -758,11 +752,10 @@ contract TestCore is Test {
             weth.deposit{value: 100 ether}();
             weth.transfer(address(testWethPair), 100);
 
-
             if (usdc.balanceOf(address(testWethPair)) == 0 || weth.balanceOf(address(testWethPair)) == 0) {
-               vm.expectRevert();
-               testWethPair.sync();
-               return;
+                vm.expectRevert();
+                testWethPair.sync();
+                return;
             }
             testWethPair.sync();
         }
@@ -815,9 +808,9 @@ contract TestCore is Test {
 
             // @notice realted to SyncExploit.t.sol
             if (usdc.balanceOf(address(testFeePair)) == 0 || feeToken.balanceOf(address(testFeePair)) == 0) {
-               vm.expectRevert();
-               testFeePair.sync();
-               return;
+                vm.expectRevert();
+                testFeePair.sync();
+                return;
             }
             testFeePair.sync();
         }
@@ -865,12 +858,12 @@ contract TestCore is Test {
             vm.deal(address(this), 100 ether);
             weth.deposit{value: 100 ether}();
             weth.transfer(address(testFeeWethPair), 100);
-            
+
             // @notice realted to SyncExploit.t.sol
             if (weth.balanceOf(address(testFeeWethPair)) == 0 || feeToken.balanceOf(address(testFeeWethPair)) == 0) {
-               vm.expectRevert();
-               testFeeWethPair.sync();
-               return;
+                vm.expectRevert();
+                testFeeWethPair.sync();
+                return;
             }
         }
 
@@ -919,12 +912,12 @@ contract TestCore is Test {
             vm.deal(address(this), 100 ether);
             weth.deposit{value: 100 ether}();
             weth.transfer(address(testFeeWethPair), 100);
-            
+
             // @notice realted to SyncExploit.t.sol
             if (weth.balanceOf(address(testFeeWethPair)) == 0 || feeToken.balanceOf(address(testFeeWethPair)) == 0) {
-               vm.expectRevert();
-               testFeeWethPair.sync();
-               return;
+                vm.expectRevert();
+                testFeeWethPair.sync();
+                return;
             }
         }
 
