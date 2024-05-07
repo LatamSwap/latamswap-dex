@@ -7,7 +7,7 @@ import {PairV2} from "src/PairV2.sol";
 import {PairLibrary} from "src/PairLibrary.sol";
 import {LatamswapFactory} from "src/Factory.sol";
 import {LatamswapRouter} from "src/Router.sol";
-import {Nativo} from "lib/Nativo/src/Nativo.sol";
+import {Nativo} from "lib/nativo/src/Nativo.sol";
 import {WETH} from "solady/tokens/WETH.sol";
 import {MockToken} from "./MockToken.sol";
 

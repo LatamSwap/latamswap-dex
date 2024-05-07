@@ -7,7 +7,7 @@ import "forge-std/Test.sol";
 // Pair factory and Pair
 import {LatamswapFactory} from "src/Factory.sol";
 import {MockToken} from "./MockToken.sol";
-import {Nativo} from "lib/Nativo/src/Nativo.sol";
+import {Nativo} from "lib/nativo/src/Nativo.sol";
 import {WETH} from "solady/tokens/WETH.sol";
 
 contract FactoryUnitTest is Test {

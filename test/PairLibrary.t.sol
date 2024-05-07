@@ -9,7 +9,7 @@ import {MockToken} from "./MockToken.sol";
 
 import {PairLibrary} from "src/PairLibrary.sol";
 
-import {Nativo} from "lib/Nativo/src/Nativo.sol";
+import {Nativo} from "lib/nativo/src/Nativo.sol";
 import {WETH} from "solady/tokens/WETH.sol";
 
 contract PairLibraryTest is Test {
