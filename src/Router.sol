@@ -1,6 +1,7 @@
 pragma solidity 0.8.23;
 
 import {IUniswapV2Factory} from "v2-core/interfaces/IUniswapV2Factory.sol";
+import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {ILatamSwapRouter} from "./interfaces/ILatamSwapRouter.sol";
 import {PairLibrary} from "./PairLibrary.sol";
@@ -85,8 +86,6 @@ contract LatamswapRouter is ILatamSwapRouter {
         uint256 deadline
     ) external ensure(deadline) returns (uint256 amountA, uint256 amountB, uint256 liquidity) {
         // reserveIn = reserveA, reserveOut = reserveB
-        uint256 half = amountADesired / 2;
-        amountA = amountADesired - half;
         (uint256 reserveIn, uint256 reserveOut, address pair) = PairLibrary.getReservesAndPair(factory, tokenA, tokenB);
 
         (address token0,) = PairLibrary.sortTokens(tokenA, tokenB);
@@ -94,10 +93,26 @@ contract LatamswapRouter is ILatamSwapRouter {
             (reserveIn, reserveOut) = (reserveOut, reserveIn);
         }
 
-        amountB = PairLibrary.getAmountOut(half, reserveIn, reserveOut);
+        // Optimal swap amount
+        // from https://github.com/stakewithus/defi-by-example/blob/f7b4a77942bafb05647c2907c4b1e066d6cdb24b/contracts/TestUniswapOptimal.sol#L30-L39
+        /*
+        s = optimal swap amount
+        r = amount of reserve for token a
+        a = amount of token a the user currently has (not added to reserve yet)
+        f = swap fee percent
+        s = (sqrt(((2 - f)r)^2 + 4(1 - f)ar) - (2 - f)r) / (2(1 - f))
+        */
+        uint256 optimalSwapAmount = (
+            FixedPointMathLib.sqrt((reserveIn * ((reserveIn * 3988009) + amountADesired * 3988000)))
+                - (reserveIn * 1997)
+        ) / 1994;
+
+        amountA = amountADesired - optimalSwapAmount;
+        amountB = PairLibrary.getAmountOut(optimalSwapAmount, reserveIn, reserveOut);
+
         if (amountBMin > amountB) revert ErrInsufficientAmountB();
 
-        SafeTransferLib.safeTransferFrom(tokenA, msg.sender, pair, half);
+        SafeTransferLib.safeTransferFrom(tokenA, msg.sender, pair, optimalSwapAmount);
 
         if (tokenA == token0) {
             PairV2(pair).swap(0, amountB, address(this), "");
