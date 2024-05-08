@@ -15,6 +15,8 @@ import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 contract MockFactory {
     address public feeTo;
 
+    function test() public { /* to remove from coverage */ }
+
     constructor(address _feeTo) {
         feeTo = _feeTo;
     }
@@ -25,6 +27,8 @@ contract MockFactory {
 }
 
 contract MockUser {
+    function test() public { /* to remove from coverage */ }
+
     function addLiquidity(address pair, address _token0, address _token1, uint256 _amount0, uint256 _amount1)
         public
         returns (uint256 liquidity)
@@ -72,6 +76,8 @@ contract PairFuzzTest is Test {
         //(token0, token1) = PairLibrary.sortTokens(address(tokenA), address(tokenB));
         pairLatam = new PairV2(address(token2), address(token3), factory);
     }
+
+    function test() public { /* to remove from coverage */ }
 
     function test_addLiquidity(uint256 amountA, uint256 amountB, bool invert) public {
         (address tokenUniA, address tokenUniB) = PairLibrary.sortTokens(address(token0), address(token1));
