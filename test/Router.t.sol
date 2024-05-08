@@ -69,6 +69,40 @@ contract RouterLatamSwapTest is Test {
         assertEq(nativo.balanceOf(pair), 1 ether);
     }
 
+    function testRemoveLiquidity(bool createPair) public {
+        if (createPair) factory.createPair(tokenA, tokenB);
+        LatamswapRouter(router).addLiquidity(
+            tokenA, tokenB, 1 ether, 1 ether, 0, 0, address(this), block.timestamp + 1000
+        );
+
+        address pair = factory.getPair(tokenA, tokenB);
+
+        assertEq(tokenA.balanceOf(pair), 1 ether);
+        assertEq(tokenB.balanceOf(pair), 1 ether);
+
+        uint256 balance = pair.balanceOf(address(this));
+        PairV2(pair).transferAndCall(
+            router,
+            balance / 2,
+            abi.encode(
+                bytes4(keccak256("removeLiquidity()")),
+                tokenA,
+                tokenB,
+                uint256(0),
+                uint256(0),
+                address(this),
+                block.timestamp + 1000
+            )
+        );
+
+        uint256 newBalance = pair.balanceOf(address(this));
+        assertEq(newBalance, balance / 2);
+
+        // + 500 is the minimum liquidity
+        assertEq(tokenA.balanceOf(pair), 0.5 ether + 500);
+        assertEq(tokenB.balanceOf(pair), 0.5 ether + 500);
+    }
+
     function testSimple() public {
         LatamswapRouter(router).addLiquidity(
             tokenA, tokenB, 100 ether, 100 ether, 0, 0, address(this), block.timestamp + 1000

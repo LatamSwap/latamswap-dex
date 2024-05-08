@@ -243,6 +243,32 @@ contract LatamswapRouter is ILatamSwapRouter {
         );
     }
 
+    function onTransferReceived(address, address, uint256 liquidity, bytes calldata data) external returns (bytes4) {
+        address pair = msg.sender;
+
+        (
+            bytes4 selector,
+            address tokenA,
+            address tokenB,
+            uint256 amountAMin,
+            uint256 amountBMin,
+            address to,
+            uint256 deadline
+        ) = abi.decode(data, (bytes4, address, address, uint256, uint256, address, uint256));
+
+        if (selector != bytes4(keccak256("removeLiquidity()"))) revert("UNKNOWN_SELECTOR");
+        if (deadline < block.timestamp) revert ErrExpired();
+
+        PairV2(pair).transfer(pair, liquidity);
+        (uint256 amount0, uint256 amount1) = PairV2(pair).burn(to);
+        (address token0,) = PairLibrary.sortTokens(tokenA, tokenB);
+        (uint256 amountA, uint256 amountB) = tokenA == token0 ? (amount0, amount1) : (amount1, amount0);
+        if (amountA < amountAMin) revert ErrInsufficientAmountA();
+        if (amountB < amountBMin) revert ErrInsufficientAmountB();
+
+        return bytes4(keccak256("onTransferReceived(address,address,uint256,bytes)"));
+    }
+
     // **** SWAP ****
     // requires the initial amount to have already been sent to the first pair
     function _swap(uint256[] memory amounts, address[] calldata path, address _to) internal virtual {
