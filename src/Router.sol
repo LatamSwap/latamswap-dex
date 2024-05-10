@@ -86,12 +86,8 @@ contract LatamswapRouter is ILatamSwapRouter {
         uint256 deadline
     ) external ensure(deadline) returns (uint256 amountA, uint256 amountB, uint256 liquidity) {
         // reserveIn = reserveA, reserveOut = reserveB
+        /// @notice getReservesAndPair gives the reserves in the order of the pair, there is no need to sort again, ref PairLibrary.sol#L58
         (uint256 reserveIn, uint256 reserveOut, address pair) = PairLibrary.getReservesAndPair(factory, tokenA, tokenB);
-
-        (address token0,) = PairLibrary.sortTokens(tokenA, tokenB);
-        if (tokenA != token0) {
-            (reserveIn, reserveOut) = (reserveOut, reserveIn);
-        }
 
         // Optimal swap amount
         // from https://github.com/stakewithus/defi-by-example/blob/f7b4a77942bafb05647c2907c4b1e066d6cdb24b/contracts/TestUniswapOptimal.sol#L30-L39
@@ -114,6 +110,7 @@ contract LatamswapRouter is ILatamSwapRouter {
 
         SafeTransferLib.safeTransferFrom(tokenA, msg.sender, pair, optimalSwapAmount);
 
+        (address token0,) = PairLibrary.sortTokens(tokenA, tokenB);
         if (tokenA == token0) {
             PairV2(pair).swap(0, amountB, address(this), "");
         } else {
