@@ -1,4 +1,4 @@
-pragma solidity 0.8.23;
+pragma solidity 0.8.25;
 
 import {IUniswapV2Factory} from "v2-core/interfaces/IUniswapV2Factory.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";

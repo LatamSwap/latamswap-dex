@@ -13,6 +13,6 @@
   "author": "eugenioclrc",
   "license": "ISC",
   "dependencies": {
-    "solady": "^0.0.180"
+    "solady": "^0.0.200"
   }
 }
