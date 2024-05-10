@@ -16,6 +16,8 @@ contract DeflatingERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
     event Transfer(address indexed from, address indexed to, uint256 value);
 
+    function test() public { /* to remove from coverage */ }
+
     constructor(uint256 _totalSupply) {
         uint256 chainId;
         assembly {

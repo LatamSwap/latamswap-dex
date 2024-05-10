@@ -5,6 +5,8 @@ import "forge-std/Test.sol";
 import "./helper/BasePairTest.sol";
 
 contract PairUniV2Test is BasePairTest {
+    function test() public override { /* to remove from coverage */ }
+
     function setUp() public override {
         super.setUp();
 

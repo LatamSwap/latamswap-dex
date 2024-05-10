@@ -3,13 +3,13 @@ pragma solidity >=0.8.10;
 
 import "forge-std/Test.sol";
 
-import {LatamswapFactory} from "../src/Factory.sol";
+import {LatamswapFactory} from "src/Factory.sol";
 import {IUniswapV2Pair} from "v2-core/interfaces/IUniswapV2Pair.sol";
 import {MockToken} from "./MockToken.sol";
 
-import {PairLibrary} from "../src/PairLibrary.sol";
+import {PairLibrary} from "src/PairLibrary.sol";
 
-import {Nativo} from "nativo/Nativo.sol";
+import {Nativo} from "lib/nativo/src/Nativo.sol";
 import {WETH} from "solady/tokens/WETH.sol";
 
 contract PairLibraryTest is Test {
