@@ -123,7 +123,7 @@ abstract contract ERC1363 is ERC20 {
             let s := shr(224, interfaceId)
             // ERC1363: 0xb0202a11
             //result := or(eq(s, 0x.....), eq(s, 0x......))
-            result := eq(s, 0xb0202a11)
+            result := or(eq(s, 0xb0202a11), eq(s, 0x01ffc9a7))
         }
     }
 }
