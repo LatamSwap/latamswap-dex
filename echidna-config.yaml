@@ -1,0 +1,14 @@
+# Echidna configuration for Latamswap vs Uniswap V2 fuzzing tests
+testLimit: 5000
+corpusDir: .echidna/corpus
+seqLen: 10
+testDepth: 15
+checkInterval: 100
+maxSeqLen: 15
+report: echidna_report.md
+format: markdown
+# Property checks
+properties:
+  - prop_noLoss
+  - prop_profitableSwap
+  - prop_consistentLiquidity
