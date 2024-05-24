@@ -61,3 +61,17 @@ Contributions are what make the open-source community such an amazing place to l
 - `multicall address `[`0xda53bDEE5B6Cf873266d2F3362d80B7B52D43124`](https://sepolia.explorer.mode.network/address/0xda53bDEE5B6Cf873266d2F3362d80B7B52D43124)
 - `Mock token address `[`0xfF6AE961405b4f3e3169e6640Cd1cA3083D58a7b`](https://sepolia.explorer.mode.network/address/0xfF6AE961405b4f3e3169e6640Cd1cA3083D58a7b)
 - `Pair TOKEN-WET: address `[`0x9Fda9BF5C83d23D31fa2b055C64789435e13EDB9`](https://sepolia.explorer.mode.network/address/0x9Fda9BF5C83d23D31fa2b055C64789435e13EDB9)
+
+## Running Echidna Tests
+
+To run Echidna tests for comparing Latamswap to Uniswap V2, follow these steps:
+
+1. Ensure Echidna is installed on your system. If not, install it using the instructions found at [Echidna's GitHub repository](https://github.com/crytic/echidna).
+2. Navigate to the root directory of the LatamSwap project.
+3. Execute the following command to start the Echidna tests:
+
+```bash
+echidna-test . --contract FuzzingEchidnaTest --config echidna-config.yaml
+```
+
+This command will run the fuzzing tests defined in `test/fuzzingEchidna.t.sol` using the configurations specified in `echidna-config.yaml`.
