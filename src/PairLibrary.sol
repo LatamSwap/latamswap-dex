@@ -157,7 +157,6 @@ library PairLibrary {
         amounts = new uint256[](pathLength);
         unchecked {
             amounts[amounts.length - 1] = amountOut;
-            address pair = pairFor(factory, path[pathLength - 2], path[pathLength - 1]);
             for (uint256 i = pathLength - 1; i > 0; --i) {
                 (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i - 1], path[i]);
                 amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut);
