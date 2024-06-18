@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.23;
+pragma solidity 0.8.25;
 
 import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
@@ -199,6 +199,11 @@ contract PairV2 is ERC20, ERC1363, ReentrancyGuard, IPairLatamSwap {
 
     // force reserves to match balances
     function sync() external nonReentrant {
-        _update(token0.balanceOf(address(this)), token1.balanceOf(address(this)), reserve0, reserve1);
+        uint256 balance0 = token0.balanceOf(address(this));
+        uint256 balance1 = token1.balanceOf(address(this));
+
+        if (balance0 == 0 || balance1 == 0) revert ErrLatamswapInsufficientLiquidity();
+
+        _update(balance0, balance1, reserve0, reserve1);
     }
 }

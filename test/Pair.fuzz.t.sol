@@ -15,6 +15,8 @@ import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 contract MockFactory {
     address public feeTo;
 
+    function test() public { /* to remove from coverage */ }
+
     constructor(address _feeTo) {
         feeTo = _feeTo;
     }
@@ -25,6 +27,8 @@ contract MockFactory {
 }
 
 contract MockUser {
+    function test() public { /* to remove from coverage */ }
+
     function addLiquidity(address pair, address _token0, address _token1, uint256 _amount0, uint256 _amount1)
         public
         returns (uint256 liquidity)
@@ -73,6 +77,8 @@ contract PairFuzzTest is Test {
         pairLatam = new PairV2(address(token2), address(token3), factory);
     }
 
+    function test() public { /* to remove from coverage */ }
+
     function test_addLiquidity(uint256 amountA, uint256 amountB, bool invert) public {
         (address tokenUniA, address tokenUniB) = PairLibrary.sortTokens(address(token0), address(token1));
         (address tokenLatamA, address tokenLatamB) = PairLibrary.sortTokens(address(token2), address(token3));
@@ -82,16 +88,14 @@ contract PairFuzzTest is Test {
         deal(address(tokenLatamA), address(userLatam), amountA);
         deal(address(tokenLatamB), address(userLatam), amountB);
 
-        try 
-            userUni.addLiquidity(address(pairUni), address(token0), address(token1), amountA, amountB) {
-
-            } catch  {
+        try userUni.addLiquidity(address(pairUni), address(token0), address(token1), amountA, amountB) {}
+        catch {
             vm.expectRevert();
             userLatam.addLiquidity(address(pairLatam), address(token2), address(token3), amountA, amountB);
             return;
         }
 
-        if(invert) {
+        if (invert) {
             userLatam.addLiquidity(address(pairLatam), address(token3), address(token2), amountA, amountB);
         } else {
             userLatam.addLiquidity(address(pairLatam), address(token2), address(token3), amountA, amountB);
@@ -100,24 +104,18 @@ contract PairFuzzTest is Test {
         assertEq(tokenUniB.balanceOf(address(pairUni)), tokenLatamB.balanceOf(address(pairLatam)));
         assertEq(pairUni.balanceOf(address(userUni)), pairLatam.balanceOf(address(userLatam)));
 
-        
         (, bytes memory r1) = address(pairUni).call(abi.encodeWithSelector(pairUni.getReserves.selector));
         (, bytes memory r2) = address(pairLatam).call(abi.encodeWithSelector(pairUni.getReserves.selector));
-        assertEq(
-            abi.encodePacked(r1),
-            abi.encodePacked(r2)
-        );
+        assertEq(abi.encodePacked(r1), abi.encodePacked(r2));
 
         deal(address(tokenUniA), address(userUni), amountA);
         deal(address(tokenUniB), address(userUni), amountB);
         deal(address(tokenLatamA), address(userLatam), amountA);
         deal(address(tokenLatamB), address(userLatam), amountB);
 
-
         userUni.addLiquidity(address(pairUni), address(token0), address(token1), amountA, amountB);
 
-
-        if(!invert) {
+        if (!invert) {
             userLatam.addLiquidity(address(pairLatam), address(token3), address(token2), amountA, amountB);
         } else {
             userLatam.addLiquidity(address(pairLatam), address(token2), address(token3), amountA, amountB);
@@ -125,12 +123,9 @@ contract PairFuzzTest is Test {
         assertEq(tokenUniA.balanceOf(address(pairUni)), tokenLatamA.balanceOf(address(pairLatam)));
         assertEq(tokenUniB.balanceOf(address(pairUni)), tokenLatamB.balanceOf(address(pairLatam)));
         assertEq(pairUni.balanceOf(address(userUni)), pairLatam.balanceOf(address(userLatam)));
-        
-        (,  r1) = address(pairUni).call(abi.encodeWithSelector(pairUni.getReserves.selector));
+
+        (, r1) = address(pairUni).call(abi.encodeWithSelector(pairUni.getReserves.selector));
         (, r2) = address(pairLatam).call(abi.encodeWithSelector(pairUni.getReserves.selector));
-        assertEq(
-            abi.encodePacked(r1),
-            abi.encodePacked(r2)
-        );
+        assertEq(abi.encodePacked(r1), abi.encodePacked(r2));
     }
 }

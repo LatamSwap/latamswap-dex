@@ -3,9 +3,11 @@ pragma solidity >=0.8.10;
 
 import "forge-std/Test.sol";
 
-contract Benchmark {
+abstract contract Benchmark {
     uint256 private cachedGas;
     string private cachedName;
+
+    function test() public virtual { /* to remove from coverage */ }
 
     function benchmarkStart(string memory name) internal {
         require(cachedGas == 0, "benchmark already started");

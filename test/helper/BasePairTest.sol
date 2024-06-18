@@ -14,6 +14,8 @@ import {Benchmark} from "./Benchmark.sol";
 contract MockFactory {
     address public feeTo;
 
+    function test() public { /* to remove from coverage */ }
+
     constructor(address _feeTo) {
         feeTo = _feeTo;
     }
@@ -24,6 +26,8 @@ contract MockFactory {
 }
 
 contract MockUser {
+    function test() public { /* to remove from coverage */ }
+
     function addLiquidity(address pair, address _token0, address _token1, uint256 _amount0, uint256 _amount1)
         public
         returns (uint256 liquidity)

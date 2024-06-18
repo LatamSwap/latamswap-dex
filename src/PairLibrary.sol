@@ -109,12 +109,13 @@ library PairLibrary {
         internal
         view
         returns (uint256[] memory amounts)
-    {
-        if (path.length < 2) revert ErrInvalidPath();
-        amounts = new uint256[](path.length);
+    {   
+        uint256 pathLength = path.length;
+        if (pathLength < 2) revert ErrInvalidPath();
+        amounts = new uint256[](pathLength);
         amounts[0] = amountIn;
         unchecked {
-            uint256 pathLengthSub1 = path.length - 1;
+            uint256 pathLengthSub1 = pathLength - 1;
             for (uint256 i; i < pathLengthSub1; ++i) {
                 (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i], path[i + 1]);
                 amounts[i + 1] = getAmountOut(amounts[i], reserveIn, reserveOut);
@@ -127,13 +128,14 @@ library PairLibrary {
         internal
         view
         returns (uint256[] memory amounts, address[] memory pairs)
-    {
-        if (path.length < 2) revert ErrInvalidPath();
-        amounts = new uint256[](path.length);
-        pairs = new address[](path.length);
+    {   
+        uint256 pathLength = path.length;
+        if (pathLength < 2) revert ErrInvalidPath();
+        amounts = new uint256[](pathLength);
+        pairs = new address[](pathLength);
         amounts[0] = amountIn;
         unchecked {
-            uint256 pathLengthSub1 = path.length - 1;
+            uint256 pathLengthSub1 = pathLength - 1;
             pairs[0] = pairFor(factory, path[0], path[1]);
             for (uint256 i; i < pathLengthSub1; ++i) {
                 (uint256 reserveIn, uint256 reserveOut, address pair) =
@@ -150,11 +152,12 @@ library PairLibrary {
         view
         returns (uint256[] memory amounts)
     {
-        if (path.length < 2) revert ErrInvalidPath();
-        amounts = new uint256[](path.length);
+        uint256 pathLength = path.length;
+        if (pathLength < 2) revert ErrInvalidPath();
+        amounts = new uint256[](pathLength);
         unchecked {
             amounts[amounts.length - 1] = amountOut;
-            for (uint256 i = path.length - 1; i > 0; --i) {
+            for (uint256 i = pathLength - 1; i > 0; --i) {
                 (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i - 1], path[i]);
                 amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut);
             }
