@@ -10,6 +10,7 @@ import {LatamswapRouter} from "src/Router.sol";
 import {Nativo} from "lib/nativo/src/Nativo.sol";
 import {WETH} from "solady/tokens/WETH.sol";
 import {MockToken} from "./MockToken.sol";
+import {DeflatingERC20} from "./DeflatingERC20.sol";
 
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
@@ -18,11 +19,13 @@ contract RouterLatamSwapTest is Test {
 
     LatamswapFactory factory;
     address router;
+    address feeToken;
     address tokenA;
     address tokenB;
     address pairAB;
     address nativo;
     address weth;
+    
 
     address deployer = makeAddr("deployer");
 
@@ -32,6 +35,9 @@ contract RouterLatamSwapTest is Test {
 
         factory = new LatamswapFactory(deployer, address(weth), address(nativo));
         router = address(new LatamswapRouter(address(factory), nativo));
+
+        feeToken = address(new DeflatingERC20(1000 ether));
+        vm.label(address(feeToken), "FEE_TOKEN");
 
         tokenA = address(new MockToken());
         tokenB = address(new MockToken());
@@ -43,6 +49,7 @@ contract RouterLatamSwapTest is Test {
 
         tokenA.safeApprove(address(router), type(uint256).max);
         tokenB.safeApprove(address(router), type(uint256).max);
+        feeToken.safeApprove(address(router), type(uint256).max);
     }
 
     function testAddLiquidity(bool createPair) public {
@@ -103,7 +110,7 @@ contract RouterLatamSwapTest is Test {
         assertEq(tokenB.balanceOf(pair), 0.5 ether + 500);
     }
 
-    function testSimple() public {
+    function testSimpleZap() public {
         LatamswapRouter(router).addLiquidity(
             tokenA, tokenB, 100 ether, 100 ether, 0, 0, address(this), block.timestamp + 1000
         );
@@ -115,7 +122,7 @@ contract RouterLatamSwapTest is Test {
 
         address receiver = makeAddr("receiver");
 
-        vm.expectRevert();
+        vm.expectRevert(bytes4(keccak256("ErrInsufficientAmountB()")));
         LatamswapRouter(router).addLiquidityTokenA(
             tokenA, tokenB, 1 ether, 0.5 ether, makeAddr("receiver"), block.timestamp + 1000
         );
@@ -131,7 +138,7 @@ contract RouterLatamSwapTest is Test {
         assertEq(PairV2(pair).balanceOf(receiver), liquidity);
     }
 
-    function testImbalanced() public {
+    function testImbalancedZap() public {
         LatamswapRouter(router).addLiquidity(
             tokenA, tokenB, 10 ether, 100 ether, 0, 0, address(this), block.timestamp + 1000
         );
@@ -143,7 +150,7 @@ contract RouterLatamSwapTest is Test {
 
         address receiver = makeAddr("receiver");
 
-        vm.expectRevert();
+        vm.expectRevert(bytes4(keccak256("ErrInsufficientAmountB()")));
         LatamswapRouter(router).addLiquidityTokenA(
             tokenA, tokenB, 1 ether, 9 ether, makeAddr("receiver"), block.timestamp + 1000
         );
@@ -163,5 +170,40 @@ contract RouterLatamSwapTest is Test {
         assertEq(tokenB.balanceOf(pair), 101 ether);
 
         assertEq(PairV2(pair).balanceOf(receiver2), liquidity);
+    }
+
+
+    function testSimpleZapFeeOnTransfer(bool token0) public {
+        if(!token0) {
+            (tokenA, tokenB) = (tokenB, tokenA);
+        }
+        LatamswapRouter(router).addLiquidity(
+            tokenA, feeToken, 100 ether, 100 ether, 0, 0, address(this), block.timestamp + 1000
+        );
+
+        address pair = factory.getPair(tokenA, feeToken);
+
+        assertEq(tokenA.balanceOf(pair), 100 ether);
+        // 99 ether because of the fee
+        assertEq(feeToken.balanceOf(pair), 99 ether);
+
+        address receiver = makeAddr("receiver");
+
+        // revert due min amount 
+        vm.expectRevert(bytes4(keccak256("ErrInsufficientAmountB()")));
+        LatamswapRouter(router).addLiquidityTokenA(
+            tokenA, feeToken, 1 ether, 0.5 ether, makeAddr("receiver"), block.timestamp + 1000
+        );
+
+        
+        (uint256 amountA, uint256 amountB, uint256 liquidity) = LatamswapRouter(router).addLiquidityTokenA(
+            tokenA, feeToken, 1 ether, 0, makeAddr("receiver"), block.timestamp + 1000
+        );
+
+        assertEq(tokenA.balanceOf(pair), 101 ether);
+        assertEq(feeToken.balanceOf(pair), 98990237383473280876);
+
+        assertGt(PairV2(pair).balanceOf(receiver), 0);
+        assertEq(PairV2(pair).balanceOf(receiver), liquidity);
     }
 }
