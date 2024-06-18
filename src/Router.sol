@@ -1,4 +1,4 @@
-pragma solidity 0.8.23;
+pragma solidity 0.8.25;
 
 import {IUniswapV2Factory} from "v2-core/interfaces/IUniswapV2Factory.sol";
 import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
@@ -53,7 +53,6 @@ contract LatamswapRouter is ILatamSwapRouter {
                 if (amountAOptimal < amountAMin) revert ErrInsufficientAmountA();
                 (amountA, amountB) = (amountAOptimal, amountBDesired);
             } else {
-                if (amountBOptimal > amountBDesired) revert ErrInsufficientQuoteB();
                 if (amountBOptimal < amountBMin) revert ErrInsufficientAmountB();
                 (amountA, amountB) = (amountADesired, amountBOptimal);
             }

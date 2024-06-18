@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.23;
+pragma solidity 0.8.25;
 
 import {IERC1363Spender} from "openzeppelin/interfaces/IERC1363Spender.sol";
 import {IERC1363Receiver} from "openzeppelin/interfaces/IERC1363Receiver.sol";
@@ -123,7 +123,7 @@ abstract contract ERC1363 is ERC20 {
             let s := shr(224, interfaceId)
             // ERC1363: 0xb0202a11
             //result := or(eq(s, 0x.....), eq(s, 0x......))
-            result := eq(s, 0xb0202a11)
+            result := or(eq(s, 0xb0202a11), eq(s, 0x01ffc9a7))
         }
     }
 }
